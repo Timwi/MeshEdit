@@ -15,5 +15,9 @@ namespace MeshEdit
         public override bool Equals(object obj) => obj is Pt && ((Pt) obj) == this;
         public override int GetHashCode() => (X.GetHashCode() * 31 + Y.GetHashCode()) * 31 + Z.GetHashCode();
         public bool Equals(Pt other) => other == this;
+
+        public static Pt operator +(Pt one, Pt two) { return new Pt(one.X + two.X, one.Y + two.Y, one.Z + two.Z); }
+        public static Pt operator *(Pt one, double two) { return new Pt(one.X * two, one.Y * two, one.Z * two); }
+        public static Pt operator /(Pt one, double two) { return new Pt(one.X / two, one.Y / two, one.Z / two); }
     }
 }

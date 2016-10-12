@@ -1,4 +1,6 @@
-﻿using System;
+﻿using System.Collections.Generic;
+using System.Linq;
+using RT.Util.Geometry;
 using RT.Util.Serialization;
 
 namespace MeshEdit
@@ -6,12 +8,14 @@ namespace MeshEdit
     sealed class Face
     {
         [ClassifyNotNull]
-        public Pt[] Vertices { get; private set; } = new Pt[0];
-        public bool Hidden { get; private set; } = false;
+        public VertexInfo[] Vertices = new VertexInfo[0];
+        public bool Hidden = false;
 
-        public Face(Pt[] vertices, bool hidden = false) { Vertices = vertices; Hidden = hidden; }
+        public IEnumerable<Pt> Locations { get { return Vertices.Select(v => v.Location); } }
+        public IEnumerable<PointD> Textures { get { return Vertices.Select(v => v.Texture); } }
+        public IEnumerable<Pt> Normals { get { return Vertices.Select(v => v.Normal); } }
+
+        public Face(VertexInfo[] vertices, bool hidden = false) { Vertices = vertices; Hidden = hidden; }
         private Face() { } // Classify
-
-        public Face FlipHidden() => new Face(Vertices, !Hidden);
     }
 }

@@ -51,8 +51,8 @@
             this.Controls.Add(this.mainPanel);
             this.Name = "Mainform";
             this.Text = "Mesh Edit";
-            this.Load += new System.EventHandler(this.load);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.keyDown);
+            this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.keyUp);
             this.Resize += new System.EventHandler(this.resize);
             this.ResumeLayout(false);
 

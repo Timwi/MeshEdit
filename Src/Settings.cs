@@ -5,11 +5,15 @@ using RT.Util.Serialization;
 
 namespace MeshEdit
 {
-    [Settings("MeshEdit", SettingsKind.UserSpecific)]
+    [Settings("MeshEdit", SettingsKind.UserSpecific, SettingsSerializer.ClassifyJson)]
     sealed class Settings : SettingsBase
     {
         public string Filename = null;
         public string LastDir = null;
+
+        public string BackgroundFilename = null;
+        public string LastBackgroundDir = null;
+
         public Pt? SelectedVertex = null;
         public int? SelectedFaceIndex = null;
         public bool IsFaceSelected = false;

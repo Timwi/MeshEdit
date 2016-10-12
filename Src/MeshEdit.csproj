@@ -59,12 +59,13 @@
     <Compile Include="Pt.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Undo.cs" />
+    <Compile Include="Vertex.cs" />
     <EmbeddedResource Include="Mainform.resx">
       <DependentUpon>Mainform.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\RT.Util\Src\RT.Util.csproj">
+    <ProjectReference Include="..\..\RT.Util\Src\RT.Util.csproj">
       <Project>{8d0fe79c-ad8d-475c-9e6f-9cae85365b5d}</Project>
       <Name>RT.Util</Name>
     </ProjectReference>
