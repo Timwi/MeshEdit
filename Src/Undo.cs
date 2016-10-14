@@ -12,47 +12,28 @@ namespace MeshEdit
         public abstract void Redo();
     }
 
-    sealed class MoveVertex : UndoItem
+    sealed class MoveVertices : UndoItem
     {
-        Pt _before, _after;
-        VertexInfo[] _affected;
+        private Tuple<VertexInfo, Pt, Pt>[] _changes;
 
-        public MoveVertex(Pt before, Pt after, VertexInfo[] affected)
+        public MoveVertices(Tuple<VertexInfo, Pt, Pt>[] changes)
         {
-            _before = before;
-            _after = after;
-            _affected = affected;
+            _changes = changes;
         }
-        private MoveVertex() { } // Classify
+        private MoveVertices() { } // Classify
 
         public override void Undo()
         {
-            foreach (var inf in _affected)
-                inf.Location = _before;
-            Program.Settings.SelectVertex(_before);
+            foreach (var inf in _changes)
+                inf.Item1.Location = inf.Item2;
+            Program.Settings.SelectedVertices = _changes.Select(tup => tup.Item1.Location).Distinct().ToList();
         }
 
         public override void Redo()
         {
-            foreach (var inf in _affected)
-                inf.Location = _after;
-            Program.Settings.SelectVertex(_after);
-        }
-    }
-
-    abstract class FullUndoItem : UndoItem
-    {
-        List<Face> _facesBefore;
-        List<Face> _facesAfter;
-
-        public override void Undo()
-        {
-            Program.Settings.Faces = _facesBefore;
-        }
-
-        public override void Redo()
-        {
-            Program.Settings.Faces = _facesAfter;
+            foreach (var inf in _changes)
+                inf.Item1.Location = inf.Item3;
+            Program.Settings.SelectedVertices = _changes.Select(tup => tup.Item1.Location).Distinct().ToList();
         }
     }
 
@@ -101,20 +82,23 @@ namespace MeshEdit
                     list.RemoveAt(index + 1);
                 tup.Item1.Vertices = list.ToArray();
             }
+            Program.Settings.SelectedVertices = _affectedFaces.SelectMany(tup => tup.Item2.Select(index => tup.Item1.Vertices[index].Location)).Distinct().ToList();
         }
 
         public override void Redo()
         {
+            Pt location = default(Pt);
             foreach (var tup in _affectedFaces)
             {
                 var list = tup.Item1.Vertices.ToList();
                 foreach (var index in tup.Item2.OrderByDescending(ix => ix))
                     list.Insert(index + 1, new VertexInfo(
-                        (list[index].Location + list[(index + 1) % list.Count].Location) / 2,
+                        (location = (list[index].Location + list[(index + 1) % list.Count].Location) / 2),
                         (list[index].Texture + list[(index + 1) % list.Count].Texture) / 2,
                         (list[index].Normal + list[(index + 1) % list.Count].Normal) / 2));
                 tup.Item1.Vertices = list.ToArray();
             }
+            Program.Settings.SelectedVertices = new List<Pt> { location };
         }
     }
 
@@ -152,77 +136,33 @@ namespace MeshEdit
         }
     }
 
-    sealed class SplitFace : UndoItem
+    sealed class AddRemoveFaces : UndoItem
     {
-        Face _oldFace;
-        Face _newFace1;
-        Face _newFace2;
+        Face[] _oldFaces;
+        Face[] _newFaces;
 
-        public SplitFace(Face face, int index1, int index2)
+        public AddRemoveFaces(Face[] oldFaces, Face[] newFaces)
         {
-            _oldFace = face;
-            if (index1 > index2)
-            {
-                var t = index1;
-                index1 = index2;
-                index2 = t;
-            }
-            _newFace1 = new Face(face.Vertices.Subarray(index1, index2 - index1 + 1), face.Hidden);
-            _newFace2 = new Face(face.Vertices.Subarray(index2).Concat(face.Vertices.Subarray(0, index1 + 1)).ToArray(), face.Hidden);
+            _oldFaces = oldFaces ?? new Face[0];
+            _newFaces = newFaces ?? new Face[0];
         }
 
-        private SplitFace() { } // Classify
+        private AddRemoveFaces() { } // Classify
 
         public override void Undo()
         {
-            Program.Settings.Faces.Remove(_newFace1);
-            Program.Settings.Faces.Remove(_newFace2);
-            Program.Settings.Faces.Add(_oldFace);
+            Program.Settings.Faces.RemoveRange(_newFaces);
+            Program.Settings.Faces.AddRange(_oldFaces);
             Program.Settings.IsFaceSelected = true;
-            Program.Settings.SelectedFaceIndex = Program.Settings.Faces.Count - 1;
+            Program.Settings.SelectedFaceIndex = _oldFaces.Length > 0 ? Program.Settings.Faces.Count - 1 : (int?) null;
         }
 
         public override void Redo()
         {
-            Program.Settings.Faces.Remove(_oldFace);
-            Program.Settings.Faces.Add(_newFace1);
-            Program.Settings.Faces.Add(_newFace2);
+            Program.Settings.Faces.RemoveRange(_oldFaces);
+            Program.Settings.Faces.AddRange(_newFaces);
             Program.Settings.IsFaceSelected = true;
-            Program.Settings.SelectedFaceIndex = Program.Settings.Faces.Count - 1;
-        }
-    }
-
-    sealed class MergeFaces : UndoItem
-    {
-        Face _oldFace1;
-        Face _oldFace2;
-        Face _newFace;
-
-        public MergeFaces(Face face1, Face face2, Face newFace)
-        {
-            _oldFace1 = face1;
-            _oldFace2 = face2;
-            _newFace = newFace;
-        }
-
-        private MergeFaces() { } // Classify
-
-        public override void Undo()
-        {
-            Program.Settings.Faces.Remove(_newFace);
-            Program.Settings.Faces.Add(_oldFace1);
-            Program.Settings.Faces.Add(_oldFace2);
-            Program.Settings.IsFaceSelected = true;
-            Program.Settings.SelectedFaceIndex = Program.Settings.Faces.Count - 1;
-        }
-
-        public override void Redo()
-        {
-            Program.Settings.Faces.Remove(_oldFace1);
-            Program.Settings.Faces.Remove(_oldFace2);
-            Program.Settings.Faces.Add(_newFace);
-            Program.Settings.IsFaceSelected = true;
-            Program.Settings.SelectedFaceIndex = Program.Settings.Faces.Count - 1;
+            Program.Settings.SelectedFaceIndex = _newFaces.Length > 0 ? Program.Settings.Faces.Count - 1 : (int?) null;
         }
     }
 
@@ -249,26 +189,6 @@ namespace MeshEdit
         {
             foreach (var tup in _faces)
                 tup.Item1.Hidden = _setTo;
-        }
-    }
-
-    sealed class ChangeTextures : UndoItem
-    {
-        Tuple<VertexInfo, PointD, PointD>[] _data;
-
-        public ChangeTextures(Tuple<VertexInfo, PointD, PointD>[] data) { _data = data; }
-        private ChangeTextures() { } // Classify
-
-        public override void Undo()
-        {
-            foreach (var tup in _data)
-                tup.Item1.Texture = tup.Item2;
-        }
-
-        public override void Redo()
-        {
-            foreach (var tup in _data)
-                tup.Item1.Texture = tup.Item3;
         }
     }
 }

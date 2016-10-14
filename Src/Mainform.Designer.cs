@@ -38,7 +38,8 @@
             this.mainPanel.Name = "mainPanel";
             this.mainPanel.Size = new System.Drawing.Size(784, 561);
             this.mainPanel.TabIndex = 0;
-            this.mainPanel.PaintBuffer += new System.Windows.Forms.PaintEventHandler(this.paint);
+            this.mainPanel.PaintBuffer += new System.Windows.Forms.PaintEventHandler(this.paintBuffer);
+            this.mainPanel.Paint += new System.Windows.Forms.PaintEventHandler(this.paint);
             this.mainPanel.MouseDown += new System.Windows.Forms.MouseEventHandler(this.mouseDown);
             this.mainPanel.MouseMove += new System.Windows.Forms.MouseEventHandler(this.mouseMove);
             this.mainPanel.MouseUp += new System.Windows.Forms.MouseEventHandler(this.mouseUp);

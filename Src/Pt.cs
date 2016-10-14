@@ -17,7 +17,9 @@ namespace MeshEdit
         public bool Equals(Pt other) => other == this;
 
         public static Pt operator +(Pt one, Pt two) { return new Pt(one.X + two.X, one.Y + two.Y, one.Z + two.Z); }
+        public static Pt operator -(Pt one, Pt two) { return new Pt(one.X - two.X, one.Y - two.Y, one.Z - two.Z); }
         public static Pt operator *(Pt one, double two) { return new Pt(one.X * two, one.Y * two, one.Z * two); }
         public static Pt operator /(Pt one, double two) { return new Pt(one.X / two, one.Y / two, one.Z / two); }
+        public static Pt operator -(Pt one) { return new Pt(-one.X, -one.Y, -one.Z); }
     }
 }

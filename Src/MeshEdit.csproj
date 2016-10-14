@@ -35,6 +35,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -58,6 +61,11 @@
     <Compile Include="Program.cs" />
     <Compile Include="Pt.cs" />
     <Compile Include="Settings.cs" />
+    <Compile Include="Tools\RecalculateNormals.cs" />
+    <Compile Include="Tools\RecalculateTexturesKTANE.cs" />
+    <Compile Include="Tools\GenerateInset.cs" />
+    <Compile Include="Tools\SelectNonHiddenVertices.cs" />
+    <Compile Include="Tools\Tool.cs" />
     <Compile Include="Undo.cs" />
     <Compile Include="Vertex.cs" />
     <EmbeddedResource Include="Mainform.resx">
