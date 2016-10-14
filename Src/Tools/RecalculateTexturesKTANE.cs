@@ -15,7 +15,7 @@ namespace MeshEdit.Tools
             Program.Settings.Execute(new undo(
                 Program.Settings.Faces
                     .SelectMany(f => f.Vertices)
-                    .Where(v => Program.Settings.SelectedVertices.Contains(v.Location))
+                    .Where(v => Program.Settings.Faces.Where(f => f.Locations.Contains(v.Location)).All(f => !f.Hidden))
                     .Select(v => Tuple.Create(v, v.Texture, new PointD(.4771284794 * v.Location.X + .46155, -.4771284794 * v.Location.Z + .5337373145)))
                     .ToArray()));
         }

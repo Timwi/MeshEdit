@@ -14,7 +14,7 @@ namespace MeshEdit.Tools
             Program.Settings.Execute(new undo(
                 Program.Settings.Faces
                     .SelectMany(f => f.Vertices.Select((v, i) => new { Face = f, Vertex = v, Index = i }))
-                    .Where(inf => Program.Settings.SelectedVertices.Contains(inf.Vertex.Location))
+                    .Where(inf => Program.Settings.Faces.Where(f => f.Locations.Contains(inf.Vertex.Location)).All(f => !f.Hidden))
                     .Select(inf => Tuple.Create(inf.Vertex, inf.Vertex.Normal, vectorCrossProduct(
                         inf.Face.Vertices[(inf.Index + inf.Face.Vertices.Length - 1) % inf.Face.Vertices.Length].Location - inf.Vertex.Location,
                         inf.Face.Vertices[(inf.Index + 1) % inf.Face.Vertices.Length].Location - inf.Vertex.Location)))
