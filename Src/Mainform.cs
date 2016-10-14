@@ -55,7 +55,6 @@ namespace MeshEdit
 
             Program.Settings.UpdateUI += updateUi;
 
-
             InitializeComponent();
             recalculateBounds();
             updateUi();
@@ -97,7 +96,8 @@ namespace MeshEdit
             }
 
             Program.Settings.Faces = faces.Select(f => new Face(f.Select(ix => new VertexInfo(vertices[ix.Item1], ix.Item2 == -1 ? (PointD?) null : textures[ix.Item2], ix.Item3 == -1 ? (Pt?) null : normals[ix.Item3])).ToArray())).ToList();
-        }
+            recalculateBounds();
+        }   
 
         private void recalculateBounds()
         {
