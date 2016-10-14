@@ -97,7 +97,7 @@ namespace MeshEdit
 
             Program.Settings.Faces = faces.Select(f => new Face(f.Select(ix => new VertexInfo(vertices[ix.Item1], ix.Item2 == -1 ? (PointD?) null : textures[ix.Item2], ix.Item3 == -1 ? (Pt?) null : normals[ix.Item3])).ToArray())).ToList();
             recalculateBounds();
-        }   
+        }
 
         private void recalculateBounds()
         {
@@ -162,7 +162,7 @@ namespace MeshEdit
 
                 for (int i = 0; i < _draggingAffected.Length; i++)
                     _draggingAffected[i].Item1.Location = i == _draggingIndex ? _draggingVerticesTo.Value : _draggingAffected[i].Item2 - beforeMouse + _draggingVerticesTo.Value;
-                Program.Settings.SelectedVertices = _draggingAffected.Select(tup => tup.Item1.Location).ToList();
+                Program.Settings.SelectedVertices = _draggingAffected.Select(tup => tup.Item1.Location).Distinct().ToList();
                 mainPanel.Refresh();
             }
             else if (_draggingSelectionRect != null)
@@ -264,18 +264,7 @@ namespace MeshEdit
                     else
                     {
                         Program.Settings.IsFaceSelected = true;
-                        //if (Program.Settings.SelectedVertex != null)
-                        //{
-                        //    if (_lastFaceFromVertex != Program.Settings.SelectedVertex)
-                        //    {
-                        //        _lastFaceFromVertex = Program.Settings.SelectedVertex.Value;
-                        //        _lastFaceFromVertexIndex = -1;
-                        //    }
-                        //    _lastFaceFromVertexIndex =
-                        //        Enumerable.Range(_lastFaceFromVertexIndex.Value + 1, Program.Settings.Faces.Count - _lastFaceFromVertexIndex.Value - 1).Where(i => Program.Settings.Faces[i].Locations.Contains(_lastFaceFromVertex.Value)).FirstOrNull() ??
-                        //        Enumerable.Range(0, _lastFaceFromVertexIndex.Value + 1).Where(i => Program.Settings.Faces[i].Locations.Contains(_lastFaceFromVertex.Value)).FirstOrNull();
-                        //    Program.Settings.SelectFace(_lastFaceFromVertexIndex);
-                        //}
+                        Program.Settings.SelectFace(Program.Settings.Faces.SelectIndexWhere(f => Program.Settings.SelectedVertices.All(f.Locations.Contains)).FirstOrNull());
                     }
                     break;
 
@@ -483,7 +472,7 @@ namespace MeshEdit
 
                             case "H":
                             case "Shift+H":
-                                Program.Settings.Execute(new SetHidden(Program.Settings.Faces.Where(f => Program.Settings.SelectedVertices.All(f.Locations.Contains)).ToArray(), !shift));
+                                Program.Settings.Execute(new SetHidden(Program.Settings.Faces.Where(f => Program.Settings.SelectedVertices.Any(f.Locations.Contains)).ToArray(), !shift));
                                 break;
 
                             case "Left":
@@ -711,13 +700,18 @@ namespace MeshEdit
 
             // Selected vertices
             if (!Program.Settings.IsFaceSelected)
-                using (var f = new Font("Agency FB", 10f, FontStyle.Regular))
+                using (var font = new Font("Agency FB", 10f, FontStyle.Regular))
                     for (int i = 0; i < Program.Settings.SelectedVertices.Count; i++)
                     {
                         var vertex = Program.Settings.SelectedVertices[i];
                         var pt = trP(vertex).ToPointF();
                         e.Graphics.DrawEllipse(new Pen(Color.Navy, 2f), new RectangleF(pt - tm(_selectionSize, .5f), _selectionSize));
-                        e.Graphics.DrawString((i + 1).ToString(), f, Brushes.Navy, pt + new SizeF(0, -_selectionSize.Height / 2), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Far });
+                        e.Graphics.DrawString((i + 1).ToString(), font, Brushes.Navy, pt + new SizeF(0, -_selectionSize.Height / 2), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Far });
+                        e.Graphics.DrawString($"{vertex.Y:0.###}", font, Brushes.Black, pt, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+
+                        var j = 0;
+                        foreach (var t in Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Location == vertex && v.Normal != null).Select(v => v.Normal.Value).Distinct())
+                            e.Graphics.DrawString($"({t.X:0.###}, {t.Y:0.###}, {t.Z:0.###})", font, Brushes.CadetBlue, pt + new SizeF(0, 15 * (++j)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
                     }
 
             // Highlighted vertex
@@ -782,18 +776,6 @@ namespace MeshEdit
                 e.Graphics.DrawPolygon(new Pen(Brushes.DarkGray, 2f) { LineJoin = LineJoin.Round }, poly);
                 if (!inf.Face.Hidden)
                     usedVertices.AddRange(inf.Face.Vertices);
-            }
-
-            using (var f = new Font("Agency FB", 10f, FontStyle.Regular))
-            {
-                foreach (var gr in usedVertices.GroupBy(v => v.Location))
-                {
-                    var dp = trP(gr.Key).ToPointF();
-                    e.Graphics.DrawString($"{gr.Key.Y:0.###}", f, Brushes.Black, dp, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
-                    var i = 0;
-                    foreach (var t in gr.Where(v => v.Normal != null).Select(v => v.Normal.Value).Distinct())
-                        e.Graphics.DrawString($"({t.X:0.######}, {t.Y:0.######}, {t.Z:0.######})", f, Brushes.CadetBlue, dp + new SizeF(0, 15 * (++i)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
-                }
             }
         }
 
