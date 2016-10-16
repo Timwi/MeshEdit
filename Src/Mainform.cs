@@ -89,7 +89,7 @@ namespace MeshEdit
                         {
                             var ixs = s.Split(new[] { '/' });
                             var vix = int.Parse(ixs[0]) - 1;
-                            var tix = ixs.Length > 1 ? int.Parse(ixs[1]) - 1 : -1;
+                            var tix = ixs.Length > 1 && ixs[1].Length > 0 ? int.Parse(ixs[1]) - 1 : -1;
                             var nix = ixs.Length > 2 ? int.Parse(ixs[2]) - 1 : -1;
                             return Tuple.Create(vix, tix, nix);
                         }).ToArray());
@@ -298,7 +298,7 @@ namespace MeshEdit
                     using (var dlg = new ManagedForm(Program.Settings.ToolWindowSettings) { Text = "Use custom tool", FormBorderStyle = FormBorderStyle.Sizable, MinimizeBox = false, MaximizeBox = false, ControlBox = false, ShowInTaskbar = false })
                     {
                         var cmb = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false };
-                        cmb.Items.AddRange(Tool.AllTools);
+                        cmb.Items.AddRange(Tool.AllTools.OrderBy(t => t.Name).ToArray());
 
                         var btnOk = new Button { Text = "&OK" };
                         btnOk.Click += delegate { dlg.DialogResult = DialogResult.OK; };
@@ -711,7 +711,7 @@ namespace MeshEdit
 
                         var j = 0;
                         foreach (var t in Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Location == vertex && v.Normal != null).Select(v => v.Normal.Value).Distinct())
-                            e.Graphics.DrawString($"({t.X:0.###}, {t.Y:0.###}, {t.Z:0.###})", font, Brushes.CadetBlue, pt + new SizeF(0, 15 * (++j)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                            e.Graphics.DrawString($"({t.X:0.######}, {t.Y:0.######}, {t.Z:0.######})", font, Brushes.CadetBlue, pt + new SizeF(0, 15 * (++j)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
                     }
 
             // Highlighted vertex

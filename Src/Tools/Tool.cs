@@ -7,7 +7,7 @@ namespace MeshEdit
 {
     abstract class Tool
     {
-        public static Tool[] AllTools = new Tool[] { RecalculateTexturesKTANE.Instance, GenerateInset.Instance, SelectNonHiddenVertices.Instance, RecalculateNormals.Instance };
+        public static Tool[] AllTools = new Tool[] { RecalculateTexturesKTANE.Instance, GenerateInset.Instance, SelectNonHiddenVertices.Instance, RecalculateNormals.Instance1, RecalculateNormals.Instance2 };
 
         public abstract void Execute();
         public abstract string Name { get; }

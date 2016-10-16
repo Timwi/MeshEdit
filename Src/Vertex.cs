@@ -1,4 +1,5 @@
 ﻿using System;
+using RT.Util;
 using RT.Util.Geometry;
 
 namespace MeshEdit
@@ -17,5 +18,10 @@ namespace MeshEdit
         }
 
         private VertexInfo() { } // Classify
+
+        public override string ToString()
+        {
+            return Location.ToString() + Texture?.Apply(t => "; T=" + t) + Normal?.Apply(n => "; N=" + n);
+        }
     }
 }
