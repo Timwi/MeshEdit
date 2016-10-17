@@ -153,16 +153,14 @@ namespace MeshEdit
         {
             Program.Settings.Faces.RemoveRange(_newFaces);
             Program.Settings.Faces.AddRange(_oldFaces);
-            Program.Settings.IsFaceSelected = true;
-            Program.Settings.SelectedFaceIndex = _oldFaces.Length > 0 ? Program.Settings.Faces.Count - 1 : (int?) null;
+            Program.Settings.SelectFace(_oldFaces.Length > 0 ? Program.Settings.Faces.Count - 1 : (int?) null);
         }
 
         public override void Redo()
         {
             Program.Settings.Faces.RemoveRange(_oldFaces);
             Program.Settings.Faces.AddRange(_newFaces);
-            Program.Settings.IsFaceSelected = true;
-            Program.Settings.SelectedFaceIndex = _newFaces.Length > 0 ? Program.Settings.Faces.Count - 1 : (int?) null;
+            Program.Settings.SelectFace(_newFaces.Length > 0 ? Program.Settings.Faces.Count - 1 : (int?) null);
         }
     }
 

@@ -17,15 +17,14 @@ namespace MeshEdit
 {
     public partial class Mainform : ManagedForm
     {
-        private const int _paddingX = 20;
-        private const int _paddingY = 20;
+        private const int _pxPaddingX = 20;
+        private const int _pxPaddingY = 20;
         private static SizeF _selectionSize = new SizeF(10, 10);
 
-        private double _minX;
-        private double _minY;
-        private double _boundingW;
-        private double _boundingH;
-        private RectangleD _displayRect;
+        // The region that is supposed to be shown by fitting it into the window size. If the aspect ratio is different, the window shows more.
+        private RectangleD _intendedShowingRect;
+        // The region that is actually shown on the screen.
+        private RectangleD _actualShowingRect;
 
         // Alt+Arrow keys
         private Pt? _selectingFromVertex;
@@ -47,6 +46,9 @@ namespace MeshEdit
         // Oemplus key in face mode
         private int? _selectedForFaceMerge = null;
 
+        private bool _aboutToZoom = false;
+        private bool _zoomed = false;
+
         public Mainform() : base(Program.Settings.MainWindowSettings)
         {
             if (Program.Settings.SelectedFaceIndex != null && Program.Settings.SelectedFaceIndex >= Program.Settings.Faces.Count)
@@ -56,13 +58,13 @@ namespace MeshEdit
             Program.Settings.UpdateUI += updateUi;
 
             InitializeComponent();
-            recalculateBounds();
             updateUi();
         }
 
         public void updateUi()
         {
-            Text = $"Mesh Edit — {(Program.Settings.IsFaceSelected ? "Face" : "Vertex")}";
+            Text = $"Mesh Edit — {(Program.Settings.IsFaceSelected ? "Face" : "Vertex")} — {Program.Settings.Filename ?? "(untitled)"}";
+            recalculateBounds();
         }
 
         private void openFile()
@@ -71,6 +73,7 @@ namespace MeshEdit
             var textures = new List<PointD>();
             var normals = new List<Pt>();
             var faces = new List<Tuple<int, int, int>[]>();
+            string hiddenFacesStr = null;
 
             foreach (var line in File.ReadAllLines(Program.Settings.Filename))
             {
@@ -93,19 +96,58 @@ namespace MeshEdit
                             var nix = ixs.Length > 2 ? int.Parse(ixs[2]) - 1 : -1;
                             return Tuple.Create(vix, tix, nix);
                         }).ToArray());
+                else if (line.StartsWith("#h "))
+                    hiddenFacesStr = line.Substring(3);
             }
 
-            Program.Settings.Faces = faces.Select(f => new Face(f.Select(ix => new VertexInfo(vertices[ix.Item1], ix.Item2 == -1 ? (PointD?) null : textures[ix.Item2], ix.Item3 == -1 ? (Pt?) null : normals[ix.Item3])).ToArray())).ToList();
+            Program.Settings.Faces = faces.Select(f => new Face(f.Select(ixs => new VertexInfo(vertices[ixs.Item1], ixs.Item2 == -1 ? (PointD?) null : textures[ixs.Item2], ixs.Item3 == -1 ? (Pt?) null : normals[ixs.Item3])).ToArray())).ToList();
+            int ix;
+            if (hiddenFacesStr != null)
+                foreach (var segment in hiddenFacesStr.Split(','))
+                    if (int.TryParse(segment, out ix) && ix >= 0 && ix < Program.Settings.Faces.Count)
+                        Program.Settings.Faces[ix].Hidden = true;
             recalculateBounds();
         }
 
         private void recalculateBounds()
         {
-            _minX = Program.Settings.Faces.Min(f => f.Locations.Min(p => p.X));
-            _minY = Program.Settings.Faces.Min(f => f.Locations.Min(p => p.Z));
-            _boundingW = Program.Settings.Faces.Max(f => f.Locations.Max(p => p.X)) - _minX;
-            _boundingH = Program.Settings.Faces.Max(f => f.Locations.Max(p => p.Z)) - _minY;
-            _displayRect = fitIntoMaintainAspectRatio(_boundingW, _boundingH, new RectangleD(_paddingX, _paddingY, ClientSize.Width - 2 * _paddingX, ClientSize.Height - 2 * _paddingY));
+            if (Program.Settings.ShowingRect != null)
+                _intendedShowingRect = Program.Settings.ShowingRect.Value;
+            else if (Program.Settings.Faces.Count > 0)
+            {
+                var minX = Program.Settings.Faces.Min(f => f.Locations.Min(p => p.X));
+                var minY = Program.Settings.Faces.Min(f => f.Locations.Min(p => p.Z));
+                var boundingW = Program.Settings.Faces.Max(f => f.Locations.Max(p => p.X)) - minX;
+                var boundingH = Program.Settings.Faces.Max(f => f.Locations.Max(p => p.Z)) - minY;
+                var paddingX = boundingW / ClientSize.Width * _pxPaddingX;
+                var paddingY = boundingH / ClientSize.Height * _pxPaddingY;
+                _intendedShowingRect = new RectangleD(minX - paddingX, minY - paddingY, boundingW + 2 * paddingX, boundingH + 2 * paddingY);
+            }
+            else
+                _intendedShowingRect = new RectangleD(0, 0, 1, 1);
+
+            if ((double) ClientSize.Width / ClientSize.Height > _intendedShowingRect.Width / _intendedShowingRect.Height)
+            {
+                var newWidth = _intendedShowingRect.Height / ClientSize.Height * ClientSize.Width;
+                _actualShowingRect = new RectangleD(
+                    _intendedShowingRect.Left - (newWidth - _intendedShowingRect.Width) / 2,
+                    _intendedShowingRect.Top,
+                    newWidth,
+                    _intendedShowingRect.Height
+                );
+            }
+            else
+            {
+                var newHeight = _intendedShowingRect.Width / ClientSize.Width * ClientSize.Height;
+                _actualShowingRect = new RectangleD(
+                    _intendedShowingRect.Left,
+                    _intendedShowingRect.Top - (newHeight - _intendedShowingRect.Height) / 2,
+                    _intendedShowingRect.Width,
+                    newHeight
+                );
+            }
+
+            mainPanel.Refresh();
         }
 
         private Tuple<Face, int[]>[] getAffected(Pt[] p)
@@ -115,9 +157,25 @@ namespace MeshEdit
 
         void mouseDown(object sender, MouseEventArgs e)
         {
+            var mousePos = new PointD(e.X, e.Y);
             if (e.Button.HasFlag(MouseButtons.Left) && Program.Settings.Faces.Count > 0)
             {
-                if (_highlightVertex != null)
+                var potentialFaces = Program.Settings.Faces.SelectIndexWhere(f => new PolygonD(f.Vertices.Select(v => trP(v.Location))).ContainsPoint(mousePos)).ToArray();
+
+                if (_highlightVertex == null && potentialFaces.Length > 0 && !_aboutToZoom && !Ut.Ctrl)
+                {
+                    if (Program.Settings.IsFaceSelected && Program.Settings.SelectedFaceIndex != null)
+                        Program.Settings.SelectFace(potentialFaces[(potentialFaces.IndexOf(Program.Settings.SelectedFaceIndex.Value) + 1) % potentialFaces.Length]);
+                    else
+                        Program.Settings.SelectFace(potentialFaces[0]);
+                }
+                else if (_highlightVertex == null || _aboutToZoom)
+                {
+                    if (!Ut.Shift && !_aboutToZoom)
+                        Program.Settings.SelectVertex(null);
+                    _draggingSelectionRect = new RectangleD(mousePos.X, mousePos.Y, 0, 0);
+                }
+                else
                 {
                     if (Program.Settings.SelectedVertices.Contains(_highlightVertex.Value))
                     {
@@ -143,12 +201,6 @@ namespace MeshEdit
                     _highlightVertex = null;
                     _draggingVertices = true;
                     mainPanel.Invalidate();
-                }
-                else
-                {
-                    if (!Ut.Shift)
-                        Program.Settings.SelectVertex(null);
-                    _draggingSelectionRect = new RectangleD(e.X, e.Y, 0, 0);
                 }
             }
         }
@@ -182,23 +234,35 @@ namespace MeshEdit
                 {
                     var beforeMouse = _draggingAffected[_draggingIndex].Item2;
                     Program.Settings.Undo.Push(new MoveVertices(_draggingAffected.Select(tup => Tuple.Create(tup.Item1, tup.Item2, tup.Item2 - beforeMouse + _draggingVerticesTo.Value)).ToArray()));
-                    recalculateBounds();
                     updateHighlight(e);
-                    mainPanel.Refresh();
                     save();
                     _draggingVerticesTo = null;
+                    recalculateBounds();
                 }
                 _draggingVertices = false;
                 _draggingAffected = null;
             }
             else if (_draggingSelectionRect != null)
             {
-                var n = _draggingSelectionRect.Value.Normalize();
-                var faces = Ut.Ctrl ? Program.Settings.Faces : Program.Settings.Faces.Where(f => !f.Hidden);
-                if (!Ut.Shift)
-                    Program.Settings.SelectedVertices = new List<Pt>();
-                Program.Settings.SelectedVertices = Program.Settings.SelectedVertices.Union(
-                    faces.SelectMany(f => f.Locations).Distinct().Where(v => trP(v).Apply(p => n.Contains(p.X, p.Y)))).ToList();
+                if (_aboutToZoom)
+                {
+                    _aboutToZoom = false;
+                    Cursor = Cursors.Arrow;
+                    var rect = _draggingSelectionRect.Value.Normalize();
+                    var topLeft = revTrP(rect.Left, rect.Top);
+                    var bottomRight = revTrP(rect.Right, rect.Bottom);
+                    Program.Settings.ShowingRect = _intendedShowingRect = new RectangleD(topLeft.X, topLeft.Z, bottomRight.X - topLeft.X, bottomRight.Z - topLeft.Z);
+                    recalculateBounds();
+                }
+                else
+                {
+                    var n = _draggingSelectionRect.Value.Normalize();
+                    var faces = Ut.Ctrl ? Program.Settings.Faces : Program.Settings.Faces.Where(f => !f.Hidden);
+                    if (!Ut.Shift)
+                        Program.Settings.SelectedVertices = new List<Pt>();
+                    Program.Settings.SelectedVertices = Program.Settings.SelectedVertices.Union(
+                        faces.SelectMany(f => f.Locations).Distinct().Where(v => trP(v).Apply(p => n.Contains(p.X, p.Y)))).ToList();
+                }
                 _draggingSelectionRect = null;
             }
         }
@@ -214,16 +278,19 @@ namespace MeshEdit
 
         private void save()
         {
-            //var allFaces = Program.Settings.Faces;
+            if (Program.Settings.Filename != null)
+            {
+                var vs = Program.Settings.Faces.SelectMany(f => f.Locations).Distinct().ToList();
+                var ts = Program.Settings.Faces.SelectMany(f => f.Textures).Distinct().ToList();
+                var ns = Program.Settings.Faces.SelectMany(f => f.Normals).Distinct().ToList();
+                var txtVs = vs.Select(p => $"v {p.X} {p.Y} {p.Z}");
+                var txtTs = ts.Select(t => $"vt {t.X} {t.Y}");
+                var txtNs = ns.Select(n => $"vn {n.X} {n.Y} {n.Z}");
+                var txtFs = Program.Settings.Faces.Select(f => $"f {f.Vertices.Select(vi => encode(vs.IndexOf(vi.Location), vi.Texture?.Apply(t => ts.IndexOf(t)), vi.Normal?.Apply(n => ns.IndexOf(n)))).JoinString(" ")}");
+                var txtHs = "#h " + Program.Settings.Faces.SelectIndexWhere(f => f.Hidden).JoinString(",");
+                File.WriteAllLines(Program.Settings.Filename, txtVs.Concat(txtTs).Concat(txtNs).Concat(txtFs).Concat(txtHs));
+            }
 
-            var vs = Program.Settings.Faces.SelectMany(f => f.Locations).Distinct().ToList();
-            var ts = Program.Settings.Faces.SelectMany(f => f.Textures).Distinct().ToList();
-            var ns = Program.Settings.Faces.SelectMany(f => f.Normals).Distinct().ToList();
-            var txtVs = vs.Select(p => $"v {p.X} {p.Y} {p.Z}");
-            var txtTs = ts.Select(t => $"vt {t.X} {t.Y}");
-            var txtNs = ns.Select(n => $"vn {n.X} {n.Y} {n.Z}");
-            var txtFs = Program.Settings.Faces.Select(f => $"f {f.Vertices.Select(vi => encode(vs.IndexOf(vi.Location), vi.Texture?.Apply(t => ts.IndexOf(t)), vi.Normal?.Apply(n => ns.IndexOf(n)))).JoinString(" ")}");
-            File.WriteAllLines(Program.Settings.Filename, txtVs.Concat(txtTs).Concat(txtNs).Concat(txtFs));
             Program.Settings.Save(onFailure: SettingsOnFailure.ShowRetryWithCancel);
         }
 
@@ -252,7 +319,7 @@ namespace MeshEdit
                 case "F":
                     if (Program.Settings.IsFaceSelected)
                     {
-                        Program.Settings.IsFaceSelected = false;
+                        Program.Settings.SelectVertices(Program.Settings.SelectedVertices);
                         //if (Program.Settings.SelectedFaceIndex != null && Program.Settings.SelectedFaceIndex == _lastFaceFromVertexIndex &&
                         //    _lastFaceFromVertex != null && Program.Settings.Faces[_lastFaceFromVertexIndex.Value].Locations.Contains(_lastFaceFromVertex.Value))
                         //    Program.Settings.SelectedVertex = _lastFaceFromVertex;
@@ -263,13 +330,22 @@ namespace MeshEdit
                     }
                     else
                     {
-                        Program.Settings.IsFaceSelected = true;
                         Program.Settings.SelectFace(Program.Settings.Faces.SelectIndexWhere(f => Program.Settings.SelectedVertices.All(f.Locations.Contains)).FirstOrNull());
                     }
                     break;
 
                 case "Ctrl+Z": case "Alt+Back": undo(); break;
                 case "Ctrl+Y": case "Alt+Shift+Back": redo(); break;
+
+                case "Ctrl+N":
+                    Program.Settings.Faces.Clear();
+                    Program.Settings.Filename = null;
+                    Program.Settings.Undo.Clear();
+                    Program.Settings.Redo.Clear();
+                    Program.Settings.SelectedFaceIndex = null;
+                    Program.Settings.SelectVertices(null);
+                    updateUi();
+                    break;
 
                 case "Ctrl+O":
                     using (var dlg = new OpenFileDialog { DefaultExt = "obj", Filter = "OBJ files (*.obj)|*.obj|All files (*.*)|*.*" })
@@ -284,14 +360,45 @@ namespace MeshEdit
                         openFile();
                         Program.Settings.Undo.Clear();
                         Program.Settings.Redo.Clear();
-                        Program.Settings.SelectedVertices.Clear();
                         Program.Settings.SelectedFaceIndex = null;
-                        Program.Settings.IsFaceSelected = false;
+                        Program.Settings.SelectVertices(null);
                     }
                     break;
 
                 case "Ctrl+S":
+                    if (Program.Settings.Filename == null)
+                    {
+                        using (var dlg = new SaveFileDialog { DefaultExt = "obj", Filter = "OBJ files (*.obj)|*.obj|All files (*.*)|*.*" })
+                        {
+                            if (Program.Settings.LastDir != null)
+                                dlg.InitialDirectory = Program.Settings.LastDir;
+                            var result = dlg.ShowDialog();
+                            if (result == DialogResult.Cancel)
+                                break;
+                            Program.Settings.Filename = dlg.FileName;
+                            Program.Settings.LastDir = dlg.InitialDirectory;
+                            updateUi();
+                        }
+                    }
                     save();
+                    break;
+
+                case "OemOpenBrackets": // [
+                    if (_aboutToZoom)
+                    {
+                        _aboutToZoom = false;
+                        Cursor = Cursors.Arrow;
+                    }
+                    else if (Program.Settings.Faces.Count > 0)
+                    {
+                        _aboutToZoom = true;
+                        Cursor = Cursors.Cross;
+                    }
+                    break;
+
+                case "Oem6":    // ]
+                    Program.Settings.ShowingRect = null;
+                    recalculateBounds();
                     break;
 
                 case "T":
@@ -337,9 +444,19 @@ namespace MeshEdit
                                     Program.Settings.SelectedFaceIndex = (Program.Settings.SelectedFaceIndex.Value + Program.Settings.Faces.Count + (shift ? -1 : 1)) % Program.Settings.Faces.Count;
                                     break;
 
+                                case "S":
+                                    Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value].SpecialTexture = true;
+                                    foreach (var inf in Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value].Vertices)
+                                        inf.Texture = new PointD(0, 0);
+                                    break;
+
                                 case "H":
                                     var face = Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value];
                                     Program.Settings.Execute(new SetHidden(new[] { face }, !face.Hidden));
+                                    break;
+
+                                case "R":
+                                    Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value].Vertices.ReverseInplace();
                                     break;
 
                                 case "Ctrl+H":
@@ -463,6 +580,8 @@ namespace MeshEdit
                             mainPanel.Invalidate();
                         });
 
+                        double result1, result2, result3;
+                        string[] strSplit;
                         switch (combo)
                         {
                             case "Ctrl+C":
@@ -491,9 +610,14 @@ namespace MeshEdit
                             case "X": Clipboard.SetText(ExactConvert.ToString(Program.Settings.SelectedVertices[0].X)); anyChanges = false; break;
                             case "Y": Clipboard.SetText(ExactConvert.ToString(Program.Settings.SelectedVertices[0].Y)); anyChanges = false; break;
                             case "Z": Clipboard.SetText(ExactConvert.ToString(Program.Settings.SelectedVertices[0].Z)); anyChanges = false; break;
-                            case "Shift+X": replaceVertices(x: ExactConvert.ToDouble(Clipboard.GetText())); break;
-                            case "Shift+Y": replaceVertices(y: ExactConvert.ToDouble(Clipboard.GetText())); break;
-                            case "Shift+Z": replaceVertices(z: ExactConvert.ToDouble(Clipboard.GetText())); break;
+                            case "P": Clipboard.SetText(Program.Settings.SelectedVertices[0].Apply(t => $"{t.X:R},{t.Y:R},{t.Z:R}")); anyChanges = false; break;
+                            case "Shift+X": if (ExactConvert.Try(Clipboard.GetText(), out result1)) { replaceVertices(x: result1); } break;
+                            case "Shift+Y": if (ExactConvert.Try(Clipboard.GetText(), out result1)) { replaceVertices(y: result1); } break;
+                            case "Shift+Z": if (ExactConvert.Try(Clipboard.GetText(), out result1)) { replaceVertices(z: result1); } break;
+                            case "Shift+P":
+                                if ((strSplit = Clipboard.GetText().Split(',')).Length == 3 && ExactConvert.Try(strSplit[0], out result1) && ExactConvert.Try(strSplit[1], out result2) && ExactConvert.Try(strSplit[2], out result3))
+                                    replaceVertices(result1, result2, result3);
+                                break;
 
                             case "Alt+Right": case "Alt+Shift+Right": processArrow(0); break;
                             case "Alt+Down": case "Alt+Shift+Down": processArrow(2); break;
@@ -514,8 +638,7 @@ namespace MeshEdit
                                     var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
                                     if (rs != null)
                                     {
-                                        Program.Settings.SelectedVertices = rs.Where(v => Program.Settings.Faces.Any(f => f.Vertices.Contains(v))).Select(v => v.Location).Distinct().ToList();
-                                        Program.Settings.IsFaceSelected = false;
+                                        Program.Settings.SelectVertices(rs.Where(v => Program.Settings.Faces.Any(f => f.Vertices.Contains(v))).Select(v => v.Location).Distinct());
                                         anyChanges = false;
                                         mainPanel.Invalidate();
                                     }
@@ -536,8 +659,7 @@ namespace MeshEdit
                                     var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
                                     if (rs != null)
                                     {
-                                        Program.Settings.SelectedVertices = Program.Settings.SelectedVertices.Union(rs.Where(v => Program.Settings.Faces.Any(f => f.Vertices.Contains(v))).Select(v => v.Location)).ToList();
-                                        Program.Settings.IsFaceSelected = false;
+                                        Program.Settings.SelectVertices(Program.Settings.SelectedVertices.Union(rs.Where(v => Program.Settings.Faces.Any(f => f.Vertices.Contains(v))).Select(v => v.Location)));
                                         anyChanges = false;
                                         mainPanel.Invalidate();
                                     }
@@ -556,6 +678,10 @@ namespace MeshEdit
                             case "Ctrl+D9":
                                 Program.Settings.RememberedSelections[combo.Last() - '0'] = Program.Settings.SelectedVertices.Select(loc => Program.Settings.Faces.SelectMany(f => f.Vertices).FirstOrDefault(v => v.Location == loc)).ToArray();
                                 anyChanges = false;
+                                break;
+
+                            case "R":
+                                Program.Settings.SelectedVertices.Reverse();
                                 break;
 
                             case "Oemplus":
@@ -587,7 +713,7 @@ namespace MeshEdit
                                         DlgMessage.ShowInfo("Need at least three vertices to create a face.");
                                         break;
                                     }
-                                    Program.Settings.Execute(new AddRemoveFaces(null, new[] { new Face(Program.Settings.SelectedVertices.ToArray()) }));
+                                    Program.Settings.Execute(new AddRemoveFaces(null, new[] { new Face(Program.Settings.SelectedVertices.Select(v => new VertexInfo(v, new PointD(0, 0), new Pt(0, 1, 0))).ToArray()) { SpecialTexture = true } }));
                                     break;
                                 }
 
@@ -707,11 +833,11 @@ namespace MeshEdit
                         var pt = trP(vertex).ToPointF();
                         e.Graphics.DrawEllipse(new Pen(Color.Navy, 2f), new RectangleF(pt - tm(_selectionSize, .5f), _selectionSize));
                         e.Graphics.DrawString((i + 1).ToString(), font, Brushes.Navy, pt + new SizeF(0, -_selectionSize.Height / 2), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Far });
-                        e.Graphics.DrawString($"{vertex.Y:0.###}", font, Brushes.Black, pt, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                        e.Graphics.DrawString($"{vertex.Y:R}", font, Brushes.Black, pt, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
 
                         var j = 0;
                         foreach (var t in Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Location == vertex && v.Normal != null).Select(v => v.Normal.Value).Distinct())
-                            e.Graphics.DrawString($"({t.X:0.######}, {t.Y:0.######}, {t.Z:0.######})", font, Brushes.CadetBlue, pt + new SizeF(0, 15 * (++j)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                            e.Graphics.DrawString($"({t.X:R}, {t.Y:R}, {t.Z:R})", font, Brushes.CadetBlue, pt + new SizeF(0, 15 * (++j)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
                     }
 
             // Highlighted vertex
@@ -780,18 +906,17 @@ namespace MeshEdit
         }
 
         private PointD trP(Pt p) => new PointD(
-            (p.X - _minX) / _boundingW * _displayRect.Width + _paddingX,
-            (p.Z - _minY) / _boundingH * _displayRect.Height + _paddingY);
+            (p.X - _actualShowingRect.Left) / _actualShowingRect.Width * ClientSize.Width,
+            (p.Z - _actualShowingRect.Top) / _actualShowingRect.Height * ClientSize.Height);
 
         private Pt revTrP(double screenX, double screenY, Pt? orig = null) => new Pt(
-            (screenX - _paddingX) / _displayRect.Width * _boundingW + _minX,
+            screenX / ClientSize.Width * _actualShowingRect.Width + _actualShowingRect.Left,
             orig?.Y ?? 0,
-            (screenY - _paddingY) / _displayRect.Height * _boundingH + _minY);
+            screenY / ClientSize.Height * _actualShowingRect.Height + _actualShowingRect.Top);
 
         private void resize(object sender, EventArgs e)
         {
             recalculateBounds();
-            mainPanel.Refresh();
         }
 
         private void undo()

@@ -65,6 +65,7 @@
     <Compile Include="Tools\RecalculateTexturesKTANE.cs" />
     <Compile Include="Tools\GenerateInset.cs" />
     <Compile Include="Tools\SelectNonHiddenVertices.cs" />
+    <Compile Include="Tools\TextForKtaneFollowTheLeader.cs" />
     <Compile Include="Tools\Tool.cs" />
     <Compile Include="Undo.cs" />
     <Compile Include="Vertex.cs" />

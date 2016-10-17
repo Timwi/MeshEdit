@@ -10,6 +10,13 @@ namespace MeshEdit
         public Pt Add(double x = 0, double y = 0, double z = 0) { return new Pt(X + x, Y + y, Z + z); }
         public Pt Set(double? x = null, double? y = null, double? z = null) { return new Pt(x ?? X, y ?? Y, z ?? Z); }
 
+        public Pt RotateX(double θ) { return new Pt(X, Y * cos(θ) - Z * sin(θ), Y * sin(θ) + Z * cos(θ)); }
+        public Pt RotateY(double θ) { return new Pt(X * cos(θ) - Z * sin(θ), Y, X * sin(θ) + Z * cos(θ)); }
+        public Pt RotateZ(double θ) { return new Pt(X * cos(θ) - Y * sin(θ), X * sin(θ) + Y * cos(θ), Z); }
+
+        static double sin(double θ) => Math.Sin(θ / 180 * Math.PI);
+        static double cos(double θ) => Math.Cos(θ / 180 * Math.PI);
+
         public static bool operator ==(Pt one, Pt two) { return one.X == two.X && one.Y == two.Y && one.Z == two.Z; }
         public static bool operator !=(Pt one, Pt two) { return one.X != two.X || one.Y != two.Y || one.Z != two.Z; }
         public override bool Equals(object obj) { return obj is Pt && ((Pt) obj) == this; }
