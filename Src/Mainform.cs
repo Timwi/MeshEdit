@@ -169,7 +169,7 @@ namespace MeshEdit
                     else
                         Program.Settings.SelectFace(potentialFaces[0]);
                 }
-                else if (_highlightVertex == null || _aboutToZoom)
+                else if (_highlightVertex == null || _aboutToZoom || Ut.Ctrl)
                 {
                     if (!Ut.Shift && !_aboutToZoom)
                         Program.Settings.SelectVertex(null);
@@ -177,7 +177,7 @@ namespace MeshEdit
                 }
                 else
                 {
-                    if (Program.Settings.SelectedVertices.Contains(_highlightVertex.Value))
+                    if (!Program.Settings.IsFaceSelected && Program.Settings.SelectedVertices.Contains(_highlightVertex.Value))
                     {
                         // Shift+Click on selected vertex: unselect it and don’t do dragging
                         if (Ut.Shift)
@@ -189,7 +189,7 @@ namespace MeshEdit
                     else
                     {
                         // Click or Shift+Click on non-selected vertex
-                        if (Ut.Shift)
+                        if (Ut.Shift && !Program.Settings.IsFaceSelected)
                             Program.Settings.SelectedVertices.Add(_highlightVertex.Value);
                         else
                             Program.Settings.SelectVertex(_highlightVertex);
