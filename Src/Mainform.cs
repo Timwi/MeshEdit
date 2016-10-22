@@ -437,6 +437,8 @@ namespace MeshEdit
                     {
                         if (Program.Settings.SelectedFaceIndex != null)
                         {
+                            var face = Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value];
+
                             switch (combo)
                             {
                                 case "Tab":
@@ -445,13 +447,13 @@ namespace MeshEdit
                                     break;
 
                                 case "S":
-                                    Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value].SpecialTexture = true;
-                                    foreach (var inf in Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value].Vertices)
-                                        inf.Texture = new PointD(0, 0);
+                                    face.SpecialTexture = !face.SpecialTexture;
+                                    if (face.SpecialTexture)
+                                        foreach (var inf in Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value].Vertices)
+                                            inf.Texture = new PointD(0, 0);
                                     break;
 
                                 case "H":
-                                    var face = Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value];
                                     Program.Settings.Execute(new SetHidden(new[] { face }, !face.Hidden));
                                     break;
 
@@ -836,8 +838,8 @@ namespace MeshEdit
                         e.Graphics.DrawString($"{vertex.Y:R}", font, Brushes.Black, pt, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
 
                         var j = 0;
-                        foreach (var t in Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Location == vertex && v.Normal != null).Select(v => v.Normal.Value).Distinct())
-                            e.Graphics.DrawString($"({t.X:R}, {t.Y:R}, {t.Z:R})", font, Brushes.CadetBlue, pt + new SizeF(0, 15 * (++j)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                        foreach (var nrml in Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Location == vertex && v.Normal != null).Select(v => v.Normal.Value).Distinct())
+                            e.Graphics.DrawString($"({nrml.X:R}, {nrml.Y:R}, {nrml.Z:R})", font, Brushes.CadetBlue, pt + new SizeF(0, 15 * (++j)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
                     }
 
             // Highlighted vertex
