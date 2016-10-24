@@ -752,17 +752,28 @@ namespace MeshEdit
 
                                     var sel1 = Program.Settings.SelectedVertices[0];
                                     var sel2 = Program.Settings.SelectedVertices[1];
-                                    var affectedFace = Program.Settings.Faces
+                                    var affectedFaces = Program.Settings.Faces
                                         .Select(f => new { Face = f, Index1 = f.Vertices.IndexOf(v => v.Location == sel1), Index2 = f.Vertices.IndexOf(v => v.Location == sel2) })
                                         .Where(inf => inf.Index1 != -1 && inf.Index2 != -1)
-                                        .FirstOrDefault();
-                                    if (affectedFace != null)
+                                        .Take(2)
+                                        .ToArray();
+                                    if (affectedFaces.Length < 1)
+                                        DlgMessage.ShowInfo("The selected vertices do not have a face in common.");
+                                    else if (affectedFaces.Length > 1)
+                                        DlgMessage.ShowInfo("The selected vertices have more than one face in common.");
+                                    else
                                     {
+                                        var affectedFace = affectedFaces[0];
                                         var index1 = Math.Min(affectedFace.Index1, affectedFace.Index2);
                                         var index2 = Math.Max(affectedFace.Index1, affectedFace.Index2);
-                                        var newFace1 = new Face(affectedFace.Face.Vertices.Subarray(index1, index2 - index1 + 1), affectedFace.Face.Hidden);
-                                        var newFace2 = new Face(affectedFace.Face.Vertices.Subarray(index2).Concat(affectedFace.Face.Vertices.Subarray(0, index1 + 1)).ToArray(), affectedFace.Face.Hidden);
-                                        Program.Settings.Execute(new AddRemoveFaces(new[] { affectedFace.Face }, new[] { newFace1, newFace2 }));
+                                        if (index2 == index1 + 1 || (index1 == 0 && index2 == affectedFace.Face.Vertices.Length - 1))
+                                            DlgMessage.ShowInfo("The selected vertices are adjacent.");
+                                        else
+                                        {
+                                            var newFace1 = new Face(affectedFace.Face.Vertices.Subarray(index1, index2 - index1 + 1), affectedFace.Face.Hidden);
+                                            var newFace2 = new Face(affectedFace.Face.Vertices.Subarray(index2).Concat(affectedFace.Face.Vertices.Subarray(0, index1 + 1)).ToArray(), affectedFace.Face.Hidden);
+                                            Program.Settings.Execute(new AddRemoveFaces(new[] { affectedFace.Face }, new[] { newFace1, newFace2 }));
+                                        }
                                     }
                                     break;
                                 }
