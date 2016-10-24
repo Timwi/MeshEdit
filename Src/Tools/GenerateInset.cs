@@ -1,45 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using RT.Util;
 using RT.Util.Dialogs;
 using RT.Util.ExtensionMethods;
-using RT.Util.Geometry;
 
-namespace MeshEdit.Tools
+namespace MeshEdit
 {
-    sealed class GenerateInset : Tool
+    static partial class Tools
     {
-        public override string Name => "Generate beveled inset";
-        public static readonly GenerateInset Instance = new GenerateInset();
-        private GenerateInset() { }
-
-        private static Pt rotate(Pt point, Pt axisStart, Pt axisEnd, double angle)
-        {
-            var x = point.X;
-            var y = point.Y;
-            var z = point.Z;
-            var a = axisStart.X;
-            var b = axisStart.Y;
-            var c = axisStart.Z;
-            var u = axisEnd.X - a;
-            var v = axisEnd.Y - b;
-            var w = axisEnd.Z - c;
-            var nf = Math.Sqrt(u * u + v * v + w * w);
-            u /= nf;
-            v /= nf;
-            w /= nf;
-            var θ = angle * Math.PI / 180;
-            var cosθ = Math.Cos(θ);
-            var sinθ = Math.Sin(θ);
-
-            return new Pt(
-                (a * (v * v + w * w) - u * (b * v + c * w - u * x - v * y - w * z)) * (1 - cosθ) + x * cosθ + (-c * v + b * w - w * y + v * z) * sinθ,
-                (b * (u * u + w * w) - v * (a * u + c * w - u * x - v * y - w * z)) * (1 - cosθ) + y * cosθ + (c * u - a * w + w * x - u * z) * sinθ,
-                (c * (u * u + v * v) - w * (a * u + b * v - u * x - v * y - w * z)) * (1 - cosθ) + z * cosθ + (-b * u + a * v - v * x + u * y) * sinθ);
-        }
-
-        public override void Execute()
+        [Tool("Generate beveled inset")]
+        public static void GenerateInset()
         {
             if (Program.Settings.SelectedVertices.Count < 3)
             {
@@ -67,13 +37,13 @@ namespace MeshEdit.Tools
                     var axEnd = p2.Add(y: -bevelSize);
                     // Create bevel from e1
                     var bevel = Ut.Range(0, endAngle, angleStep).SelectConsecutivePairs(false, (angle1, angle2) => new Face(Ut.NewArray(
-                        rotate(p1, axStart, axEnd, angle2),
-                        rotate(p2, axStart, axEnd, angle2),
-                        rotate(p2, axStart, axEnd, angle1),
-                        rotate(p1, axStart, axEnd, angle1))));
+                        p1.Rotate(axStart, axEnd, angle2),
+                        p2.Rotate(axStart, axEnd, angle2),
+                        p2.Rotate(axStart, axEnd, angle1),
+                        p1.Rotate(axStart, axEnd, angle1))));
 
-                    var bottom1 = rotate(p1, axStart, axEnd, endAngle);
-                    var bottom2 = rotate(p2, axStart, axEnd, endAngle);
+                    var bottom1 = p1.Rotate(axStart, axEnd, endAngle);
+                    var bottom2 = p2.Rotate(axStart, axEnd, endAngle);
                     var backSupport = new Face(new[] { bottom2, bottom1, bottom1.Set(y: midPoint.Y), bottom2.Set(y: midPoint.Y) });
                     var backFace = new Face(new[] { midPoint, bottom2.Set(y: midPoint.Y), bottom1.Set(y: midPoint.Y) });
 
@@ -89,25 +59,25 @@ namespace MeshEdit.Tools
                             Ut.Range(0, endAngle, angleStep).SelectConsecutivePairs(false, (angle1, angle2) =>
                                 Ut.Range(0, dirChange / Math.PI * 180, 10).SelectConsecutivePairs(false, (θ1, θ2) =>
                                     new Face(Ut.NewArray(
-                                        rotate(rotate(p2, axStart, axEnd, angle2), vAxStart, vAxEnd, θ1),
-                                        rotate(rotate(p2, axStart, axEnd, angle2), vAxStart, vAxEnd, θ2),
-                                        rotate(rotate(p2, axStart, axEnd, angle1), vAxStart, vAxEnd, θ2),
-                                        rotate(rotate(p2, axStart, axEnd, angle1), vAxStart, vAxEnd, θ1)))));
+                                        p2.Rotate(axStart, axEnd, angle2).Rotate(vAxStart, vAxEnd, θ1),
+                                        p2.Rotate(axStart, axEnd, angle2).Rotate(vAxStart, vAxEnd, θ2),
+                                        p2.Rotate(axStart, axEnd, angle1).Rotate(vAxStart, vAxEnd, θ2),
+                                        p2.Rotate(axStart, axEnd, angle1).Rotate(vAxStart, vAxEnd, θ1)))));
 
                         var backFaceParts =
                                 Ut.Range(0, dirChange / Math.PI * 180, 10).SelectConsecutivePairs(false, (θ1, θ2) =>
                                     new Face(Ut.NewArray(
                                         midPoint,
-                                        rotate(rotate(p2, axStart, axEnd, endAngle), vAxStart, vAxEnd, θ2).Set(y: midPoint.Y),
-                                        rotate(rotate(p2, axStart, axEnd, endAngle), vAxStart, vAxEnd, θ1).Set(y: midPoint.Y))));
+                                        p2.Rotate(axStart, axEnd, endAngle).Rotate(vAxStart, vAxEnd, θ2).Set(y: midPoint.Y),
+                                        p2.Rotate(axStart, axEnd, endAngle).Rotate(vAxStart, vAxEnd, θ1).Set(y: midPoint.Y))));
 
                         var backSupportParts =
                                 Ut.Range(0, dirChange / Math.PI * 180, 10).SelectConsecutivePairs(false, (θ1, θ2) =>
                                     new Face(Ut.NewArray(
-                                        rotate(rotate(p2, axStart, axEnd, endAngle), vAxStart, vAxEnd, θ2),
-                                        rotate(rotate(p2, axStart, axEnd, endAngle), vAxStart, vAxEnd, θ1),
-                                        rotate(rotate(p2, axStart, axEnd, endAngle), vAxStart, vAxEnd, θ1).Set(y: midPoint.Y),
-                                        rotate(rotate(p2, axStart, axEnd, endAngle), vAxStart, vAxEnd, θ2).Set(y: midPoint.Y))));
+                                        p2.Rotate(axStart, axEnd, endAngle).Rotate(vAxStart, vAxEnd, θ2),
+                                        p2.Rotate(axStart, axEnd, endAngle).Rotate(vAxStart, vAxEnd, θ1),
+                                        p2.Rotate(axStart, axEnd, endAngle).Rotate(vAxStart, vAxEnd, θ1).Set(y: midPoint.Y),
+                                        p2.Rotate(axStart, axEnd, endAngle).Rotate(vAxStart, vAxEnd, θ2).Set(y: midPoint.Y))));
 
                         bevel = bevel.Concat(corner.SelectMany(x => x)).Concat(backFaceParts).Concat(backSupportParts);
                     }

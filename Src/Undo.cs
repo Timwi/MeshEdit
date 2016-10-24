@@ -14,9 +14,14 @@ namespace MeshEdit
 
     sealed class MoveVertices : UndoItem
     {
-        private Tuple<VertexInfo, Pt, Pt>[] _changes;
+        // VertexInfo, old location, new location, old normal, new normal
+        private Tuple<VertexInfo, Pt, Pt, Pt?, Pt?>[] _changes;
 
         public MoveVertices(Tuple<VertexInfo, Pt, Pt>[] changes)
+        {
+            _changes = changes.Select(v => Tuple.Create(v.Item1, v.Item2, v.Item3, v.Item1.Normal, v.Item1.Normal)).ToArray();
+        }
+        public MoveVertices(Tuple<VertexInfo, Pt, Pt, Pt?, Pt?>[] changes)
         {
             _changes = changes;
         }
@@ -25,14 +30,20 @@ namespace MeshEdit
         public override void Undo()
         {
             foreach (var inf in _changes)
+            {
                 inf.Item1.Location = inf.Item2;
+                inf.Item1.Normal = inf.Item4;
+            }
             Program.Settings.SelectedVertices = _changes.Select(tup => tup.Item1.Location).Distinct().ToList();
         }
 
         public override void Redo()
         {
             foreach (var inf in _changes)
+            {
                 inf.Item1.Location = inf.Item3;
+                inf.Item1.Normal = inf.Item5;
+            }
             Program.Settings.SelectedVertices = _changes.Select(tup => tup.Item1.Location).Distinct().ToList();
         }
     }
@@ -122,6 +133,7 @@ namespace MeshEdit
                     list.Insert(inner.Item1, inner.Item2);
                 tup.Item1.Vertices = list.ToArray();
             }
+            Program.Settings.SelectVertices(_affected.SelectMany(tup => tup.Item2.Select(tup2 => tup2.Item2.Location)).Distinct());
         }
 
         public override void Redo()
@@ -133,6 +145,7 @@ namespace MeshEdit
                     list.RemoveAt(inner.Item1);
                 tup.Item1.Vertices = list.ToArray();
             }
+            Program.Settings.SelectVertex(null);
         }
     }
 

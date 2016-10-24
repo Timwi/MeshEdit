@@ -1,14 +1,11 @@
 ﻿using System.Linq;
 
-namespace MeshEdit.Tools
+namespace MeshEdit
 {
-    sealed class SelectNonHiddenVertices : Tool
+    static partial class Tools
     {
-        public override string Name => "Select non-hidden vertices";
-        public static SelectNonHiddenVertices Instance = new SelectNonHiddenVertices();
-        private SelectNonHiddenVertices() { }
-
-        public override void Execute()
+        [Tool("Select non-hidden vertices")]
+        public static void SelectNonHiddenVertices()
         {
             Program.Settings.SelectVertices(Program.Settings.Faces
                 .SelectMany(f => f.Vertices.Select(v => new { Face = f, Vertex = v }))

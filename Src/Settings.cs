@@ -30,7 +30,9 @@ namespace MeshEdit
 
         [ClassifyNotNull]
         public Stack<UndoItem> Undo = new Stack<UndoItem>();
+        [ClassifyNotNull]
         public Stack<UndoItem> Redo = new Stack<UndoItem>();
+        [ClassifyNotNull]
         public VertexInfo[][] RememberedSelections = new VertexInfo[10][];
 
         public RectangleD? ShowingRect;

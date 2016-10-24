@@ -356,7 +356,7 @@ namespace MeshEdit
                         if (result == DialogResult.Cancel)
                             break;
                         Program.Settings.Filename = dlg.FileName;
-                        Program.Settings.LastDir = dlg.InitialDirectory;
+                        Program.Settings.LastDir = Path.GetDirectoryName(dlg.FileName);
                         openFile();
                         Program.Settings.Undo.Clear();
                         Program.Settings.Redo.Clear();
@@ -405,7 +405,10 @@ namespace MeshEdit
                     using (var dlg = new ManagedForm(Program.Settings.ToolWindowSettings) { Text = "Use custom tool", FormBorderStyle = FormBorderStyle.Sizable, MinimizeBox = false, MaximizeBox = false, ControlBox = false, ShowInTaskbar = false })
                     {
                         var cmb = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false };
-                        cmb.Items.AddRange(Tool.AllTools.OrderBy(t => t.Name).ToArray());
+                        cmb.Items.AddRange(typeof(Tools).GetMethods()
+                            .Select(m => ToolInfo.CreateFromMethod(m))
+                            .Where(inf => inf != null)
+                            .OrderBy(t => t.Attribute.ReadableName).ToArray<object>());
 
                         var btnOk = new Button { Text = "&OK" };
                         btnOk.Click += delegate { dlg.DialogResult = DialogResult.OK; };
@@ -428,9 +431,60 @@ namespace MeshEdit
 
                         dlg.Controls.Add(layout);
                         if (dlg.ShowDialog() == DialogResult.OK && cmb.SelectedItem != null)
-                            ((Tool) cmb.SelectedItem).Execute();
+                        {
+                            var ti = (ToolInfo) cmb.SelectedItem;
+                            var args = new object[ti.Parameters.Length];
+                            for (int i = 0; i < ti.Parameters.Length; i++)
+                                if (!ti.Parameters[i].AskForValue(out args[i]))
+                                    goto outtaHere;
+                            ti.Method.Invoke(null, args);
+                        }
                     }
+                    outtaHere:
                     break;
+
+                case "D0":
+                case "D1":
+                case "D2":
+                case "D3":
+                case "D4":
+                case "D5":
+                case "D6":
+                case "D7":
+                case "D8":
+                case "D9":
+                    {
+                        var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
+                        if (rs != null)
+                        {
+                            Program.Settings.SelectVertices(rs.Where(v => Program.Settings.Faces.Any(f => f.Vertices.Contains(v))).Select(v => v.Location).Distinct());
+                            anyChanges = false;
+                            mainPanel.Invalidate();
+                        }
+                        break;
+                    }
+
+                case "Shift+D0":
+                case "Shift+D1":
+                case "Shift+D2":
+                case "Shift+D3":
+                case "Shift+D4":
+                case "Shift+D5":
+                case "Shift+D6":
+                case "Shift+D7":
+                case "Shift+D8":
+                case "Shift+D9":
+                    {
+                        var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
+                        if (rs != null)
+                        {
+                            var newVertices = rs.Where(v => Program.Settings.Faces.Any(f => f.Vertices.Contains(v))).Select(v => v.Location);
+                            Program.Settings.SelectVertices(!Program.Settings.IsFaceSelected ? Program.Settings.SelectedVertices.Union(newVertices) : newVertices.Distinct());
+                            anyChanges = false;
+                            mainPanel.Invalidate();
+                        }
+                        break;
+                    }
 
                 default:
                     if (Program.Settings.IsFaceSelected)
@@ -584,6 +638,7 @@ namespace MeshEdit
 
                         double result1, result2, result3;
                         string[] strSplit;
+                        string clip;
                         switch (combo)
                         {
                             case "Ctrl+C":
@@ -612,61 +667,24 @@ namespace MeshEdit
                             case "X": Clipboard.SetText(ExactConvert.ToString(Program.Settings.SelectedVertices[0].X)); anyChanges = false; break;
                             case "Y": Clipboard.SetText(ExactConvert.ToString(Program.Settings.SelectedVertices[0].Y)); anyChanges = false; break;
                             case "Z": Clipboard.SetText(ExactConvert.ToString(Program.Settings.SelectedVertices[0].Z)); anyChanges = false; break;
-                            case "P": Clipboard.SetText(Program.Settings.SelectedVertices[0].Apply(t => $"{t.X:R},{t.Y:R},{t.Z:R}")); anyChanges = false; break;
+                            case "P": Clipboard.SetText(Program.Settings.SelectedVertices.Select(t => $"{t.X:R},{t.Y:R},{t.Z:R}").JoinString(Environment.NewLine)); anyChanges = false; break;
+                            case "N": Clipboard.SetText(Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => Program.Settings.SelectedVertices.Contains(v.Location)).Where(v => v.Normal != null).Select(v => v.Normal.Value).Select(n => $"{n.X:R},{n.Y:R},{n.Z:R}").JoinString(Environment.NewLine)); anyChanges = false; break;
                             case "Shift+X": if (ExactConvert.Try(Clipboard.GetText(), out result1)) { replaceVertices(x: result1); } break;
                             case "Shift+Y": if (ExactConvert.Try(Clipboard.GetText(), out result1)) { replaceVertices(y: result1); } break;
                             case "Shift+Z": if (ExactConvert.Try(Clipboard.GetText(), out result1)) { replaceVertices(z: result1); } break;
                             case "Shift+P":
-                                if ((strSplit = Clipboard.GetText().Split(',')).Length == 3 && ExactConvert.Try(strSplit[0], out result1) && ExactConvert.Try(strSplit[1], out result2) && ExactConvert.Try(strSplit[2], out result3))
+                                if (!(clip = Clipboard.GetText()).Contains('\n') && (strSplit = clip.Split(',')).Length == 3 && ExactConvert.Try(strSplit[0], out result1) && ExactConvert.Try(strSplit[1], out result2) && ExactConvert.Try(strSplit[2], out result3))
                                     replaceVertices(result1, result2, result3);
+                                break;
+                            case "Shift+N":
+                                if (!(clip = Clipboard.GetText()).Contains('\n') && (strSplit = clip.Split(',')).Length == 3 && ExactConvert.Try(strSplit[0], out result1) && ExactConvert.Try(strSplit[1], out result2) && ExactConvert.Try(strSplit[2], out result3))
+                                    replaceNormals(result1, result2, result3);
                                 break;
 
                             case "Alt+Right": case "Alt+Shift+Right": processArrow(0); break;
                             case "Alt+Down": case "Alt+Shift+Down": processArrow(2); break;
                             case "Alt+Left": case "Alt+Shift+Left": processArrow(4); break;
                             case "Alt+Up": case "Alt+Shift+Up": processArrow(6); break;
-
-                            case "D0":
-                            case "D1":
-                            case "D2":
-                            case "D3":
-                            case "D4":
-                            case "D5":
-                            case "D6":
-                            case "D7":
-                            case "D8":
-                            case "D9":
-                                {
-                                    var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
-                                    if (rs != null)
-                                    {
-                                        Program.Settings.SelectVertices(rs.Where(v => Program.Settings.Faces.Any(f => f.Vertices.Contains(v))).Select(v => v.Location).Distinct());
-                                        anyChanges = false;
-                                        mainPanel.Invalidate();
-                                    }
-                                    break;
-                                }
-
-                            case "Shift+D0":
-                            case "Shift+D1":
-                            case "Shift+D2":
-                            case "Shift+D3":
-                            case "Shift+D4":
-                            case "Shift+D5":
-                            case "Shift+D6":
-                            case "Shift+D7":
-                            case "Shift+D8":
-                            case "Shift+D9":
-                                {
-                                    var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
-                                    if (rs != null)
-                                    {
-                                        Program.Settings.SelectVertices(Program.Settings.SelectedVertices.Union(rs.Where(v => Program.Settings.Faces.Any(f => f.Vertices.Contains(v))).Select(v => v.Location)));
-                                        anyChanges = false;
-                                        mainPanel.Invalidate();
-                                    }
-                                    break;
-                                }
 
                             case "Ctrl+D0":
                             case "Ctrl+D1":
@@ -798,6 +816,14 @@ namespace MeshEdit
                 .ToArray()));
         }
 
+        private void replaceNormals(double x, double y, double z)
+        {
+            Program.Settings.Execute(new MoveVertices(Program.Settings.Faces.SelectMany(f => f.Vertices)
+                .Where(v => Program.Settings.SelectedVertices.Contains(v.Location))
+                .Select(v => Tuple.Create(v, v.Location, v.Location, v.Normal, new Pt(x, y, z).Nullable()))
+                .ToArray()));
+        }
+
         private static RectangleD fitIntoMaintainAspectRatio(double fitWidth, double fitHeight, RectangleD fitInto)
         {
             double x, y, w, h;
@@ -835,11 +861,17 @@ namespace MeshEdit
                         var pt = trP(vertex).ToPointF();
                         e.Graphics.DrawEllipse(new Pen(Color.Navy, 2f), new RectangleF(pt - tm(_selectionSize, .5f), _selectionSize));
                         e.Graphics.DrawString((i + 1).ToString(), font, Brushes.Navy, pt + new SizeF(0, -_selectionSize.Height / 2), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Far });
-                        e.Graphics.DrawString($"{vertex.Y:R}", font, Brushes.Black, pt, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                        e.Graphics.DrawString($"{vertex}", font, Brushes.Black, pt, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
 
+                        // NORMALS
                         var j = 0;
                         foreach (var nrml in Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Location == vertex && v.Normal != null).Select(v => v.Normal.Value).Distinct())
                             e.Graphics.DrawString($"({nrml.X:R}, {nrml.Y:R}, {nrml.Z:R})", font, Brushes.CadetBlue, pt + new SizeF(0, 15 * (++j)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+
+                        // TEXTURES
+                        //var j = 0;
+                        //foreach (var tx in Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Location == vertex && v.Texture != null).Select(v => v.Texture.Value).Distinct())
+                        //    e.Graphics.DrawString($"({tx.X:R}, {tx.Y:R})", font, Brushes.CadetBlue, pt + new SizeF(0, 15 * (++j)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
                     }
 
             // Highlighted vertex
