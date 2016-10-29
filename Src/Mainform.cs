@@ -47,7 +47,6 @@ namespace MeshEdit
         private int? _selectedForFaceMerge = null;
 
         private bool _aboutToZoom = false;
-        private bool _zoomed = false;
 
         public Mainform() : base(Program.Settings.MainWindowSettings)
         {
@@ -150,9 +149,9 @@ namespace MeshEdit
             mainPanel.Refresh();
         }
 
-        private Tuple<Face, int[]>[] getAffected(Pt[] p)
+        private List<Tuple<Face, int[]>> getAffected(List<Pt> p)
         {
-            return Program.Settings.Faces.Select(f => Tuple.Create(f, f.Locations.SelectIndexWhere(p.Contains).ToArray())).Where(inf => inf.Item2.Length > 0).ToArray();
+            return Program.Settings.Faces.Select(f => Tuple.Create(f, f.Locations.SelectIndexWhere(p.Contains).ToArray())).Where(inf => inf.Item2.Length > 0).ToList();
         }
 
         void mouseDown(object sender, MouseEventArgs e)
@@ -434,8 +433,9 @@ namespace MeshEdit
                         {
                             var ti = (ToolInfo) cmb.SelectedItem;
                             var args = new object[ti.Parameters.Length];
+                            var paramNames = ti.Method.GetParameters().Select(p => p.Name).ToArray();
                             for (int i = 0; i < ti.Parameters.Length; i++)
-                                if (!ti.Parameters[i].AskForValue(out args[i]))
+                                if (!ti.Parameters[i].AskForValue(paramNames[i], out args[i]))
                                     goto outtaHere;
                             ti.Method.Invoke(null, args);
                         }
@@ -498,13 +498,6 @@ namespace MeshEdit
                                 case "Tab":
                                 case "Shift+Tab":
                                     Program.Settings.SelectedFaceIndex = (Program.Settings.SelectedFaceIndex.Value + Program.Settings.Faces.Count + (shift ? -1 : 1)) % Program.Settings.Faces.Count;
-                                    break;
-
-                                case "S":
-                                    face.SpecialTexture = !face.SpecialTexture;
-                                    if (face.SpecialTexture)
-                                        foreach (var inf in Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value].Vertices)
-                                            inf.Texture = new PointD(0, 0);
                                     break;
 
                                 case "H":
@@ -733,13 +726,24 @@ namespace MeshEdit
                                         DlgMessage.ShowInfo("Need at least three vertices to create a face.");
                                         break;
                                     }
-                                    Program.Settings.Execute(new AddRemoveFaces(null, new[] { new Face(Program.Settings.SelectedVertices.Select(v => new VertexInfo(v, new PointD(0, 0), new Pt(0, 1, 0))).ToArray()) { SpecialTexture = true } }));
+                                    Program.Settings.Execute(new AddRemoveFaces(null, new[] { new Face(Program.Settings.SelectedVertices.Select(v => new VertexInfo(v, new PointD(0, 0), new Pt(0, 1, 0))).ToArray()) }));
                                     break;
                                 }
 
                             case "Delete":
                                 if (Program.Settings.SelectedVertices.Count > 0)
-                                    Program.Settings.Execute(new DeleteVertex(getAffected(Program.Settings.SelectedVertices.ToArray())));
+                                {
+                                    var affected = getAffected(Program.Settings.SelectedVertices);
+                                    var removeAffected = new List<Tuple<Face, int[]>>();
+                                    var deleted = new List<Face>();
+                                    foreach (var aff in affected.Where(af => af.Item2.Length >= af.Item1.Vertices.Length - 2))
+                                    {
+                                        removeAffected.Add(aff);
+                                        deleted.Add(aff.Item1);
+                                    }
+                                    affected.RemoveRange(removeAffected);
+                                    Program.Settings.Execute(new DeleteVertices(affected.ToArray(), deleted.ToArray()));
+                                }
                                 break;
 
                             case "OemMinus":

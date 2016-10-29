@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using RT.Util;
 using RT.Util.Dialogs;
@@ -9,7 +10,7 @@ namespace MeshEdit
     static partial class Tools
     {
         [Tool("Generate beveled inset")]
-        public static void GenerateInset()
+        public static void GenerateInset([ToolDouble("Bevel radius?")] double radius)
         {
             if (Program.Settings.SelectedVertices.Count < 3)
             {
@@ -17,76 +18,31 @@ namespace MeshEdit
                 return;
             }
 
-            const double bevelSize = .02;
-            const double backFaceDepth = .1;
-            const double endAngle = 135;
-            const double angleStep = 15;
+            Program.Settings.Execute(new AddRemoveFaces(null, bevelFromCurve(Program.Settings.SelectedVertices, radius, 12).Select(f => new Face(f, false)).ToArray()));
+        }
 
-            var midPoint = (Program.Settings.SelectedVertices.Aggregate((prev, next) => prev + next) / Program.Settings.SelectedVertices.Count).Add(y: -backFaceDepth);
-
-            var foo = Program.Settings.SelectedVertices
-                .SelectConsecutivePairs(true, (p1, p2) => new { Start = p1, End = p2 })
-                .SelectConsecutivePairs(true, (e1, e2) =>
+        private static IEnumerable<Pt[]> bevelFromCurve(List<Pt> pts, double radius, int revSteps)
+        {
+            return createMesh(true, false, pts
+                .Select((p, ix) => new
                 {
-                    var p1 = e1.Start;
-                    var p2 = e1.End;    // or e2.Start, they are the same
-                    var p3 = e2.End;
-
-                    // Axis of rotation
-                    var axStart = p1.Add(y: -bevelSize);
-                    var axEnd = p2.Add(y: -bevelSize);
-                    // Create bevel from e1
-                    var bevel = Ut.Range(0, endAngle, angleStep).SelectConsecutivePairs(false, (angle1, angle2) => new Face(Ut.NewArray(
-                        p1.Rotate(axStart, axEnd, angle2),
-                        p2.Rotate(axStart, axEnd, angle2),
-                        p2.Rotate(axStart, axEnd, angle1),
-                        p1.Rotate(axStart, axEnd, angle1))));
-
-                    var bottom1 = p1.Rotate(axStart, axEnd, endAngle);
-                    var bottom2 = p2.Rotate(axStart, axEnd, endAngle);
-                    var backSupport = new Face(new[] { bottom2, bottom1, bottom1.Set(y: midPoint.Y), bottom2.Set(y: midPoint.Y) });
-                    var backFace = new Face(new[] { midPoint, bottom2.Set(y: midPoint.Y), bottom1.Set(y: midPoint.Y) });
-
-                    // Do we need a corner piece?
-                    var dirChange = -Math.Atan2((p2.X - p1.X) * (p3.Z - p2.Z) - (p3.X - p2.X) * (p2.Z - p1.Z), (p2.X - p1.X) * (p2.Z - p1.Z) + (p3.X - p2.X) * (p3.Z - p2.Z));
-                    if (dirChange > 0)
-                    {
-                        var ax2Start = axEnd;
-                        var ax2End = p3.Add(y: -bevelSize);
-                        var vAxStart = p2;
-                        var vAxEnd = p2.Add(y: 1);
-                        var corner =
-                            Ut.Range(0, endAngle, angleStep).SelectConsecutivePairs(false, (angle1, angle2) =>
-                                Ut.Range(0, dirChange / Math.PI * 180, 10).SelectConsecutivePairs(false, (θ1, θ2) =>
-                                    new Face(Ut.NewArray(
-                                        p2.Rotate(axStart, axEnd, angle2).Rotate(vAxStart, vAxEnd, θ1),
-                                        p2.Rotate(axStart, axEnd, angle2).Rotate(vAxStart, vAxEnd, θ2),
-                                        p2.Rotate(axStart, axEnd, angle1).Rotate(vAxStart, vAxEnd, θ2),
-                                        p2.Rotate(axStart, axEnd, angle1).Rotate(vAxStart, vAxEnd, θ1)))));
-
-                        var backFaceParts =
-                                Ut.Range(0, dirChange / Math.PI * 180, 10).SelectConsecutivePairs(false, (θ1, θ2) =>
-                                    new Face(Ut.NewArray(
-                                        midPoint,
-                                        p2.Rotate(axStart, axEnd, endAngle).Rotate(vAxStart, vAxEnd, θ2).Set(y: midPoint.Y),
-                                        p2.Rotate(axStart, axEnd, endAngle).Rotate(vAxStart, vAxEnd, θ1).Set(y: midPoint.Y))));
-
-                        var backSupportParts =
-                                Ut.Range(0, dirChange / Math.PI * 180, 10).SelectConsecutivePairs(false, (θ1, θ2) =>
-                                    new Face(Ut.NewArray(
-                                        p2.Rotate(axStart, axEnd, endAngle).Rotate(vAxStart, vAxEnd, θ2),
-                                        p2.Rotate(axStart, axEnd, endAngle).Rotate(vAxStart, vAxEnd, θ1),
-                                        p2.Rotate(axStart, axEnd, endAngle).Rotate(vAxStart, vAxEnd, θ1).Set(y: midPoint.Y),
-                                        p2.Rotate(axStart, axEnd, endAngle).Rotate(vAxStart, vAxEnd, θ2).Set(y: midPoint.Y))));
-
-                        bevel = bevel.Concat(corner.SelectMany(x => x)).Concat(backFaceParts).Concat(backSupportParts);
-                    }
-
-                    return bevel.Concat(new[] { backFace, backSupport });
+                    AxisStart = p.Add(y: -radius),
+                    AxisEnd = p.Add(y: -radius) + (pts[(ix + 1) % pts.Count] - p) + (p - pts[(ix - 1 + pts.Count) % pts.Count]),
+                    Perpendicular = pts[ix]
                 })
-                .SelectMany(x => x)
-                .ToArray();
-            Program.Settings.Execute(new AddRemoveFaces(null, foo));
+                .Select(inf => Enumerable.Range(0, revSteps)
+                    .Select(i => -90 * i / (revSteps - 1))
+                    .Select(angle => inf.Perpendicular.Rotate(inf.AxisStart, inf.AxisEnd, angle))
+                    .ToArray())
+                .ToArray());
+        }
+
+        private static IEnumerable<Pt[]> createMesh(bool closedX, bool closedY, Pt[][] pts)
+        {
+            return Enumerable.Range(0, pts.Length)
+                .SelectConsecutivePairs(closedX, (i1, i2) => Enumerable.Range(0, pts[0].Length)
+                    .SelectConsecutivePairs(closedY, (j1, j2) => new[] { pts[i1][j1], pts[i2][j1], pts[i2][j2], pts[i1][j2] }))
+                .SelectMany(x => x);
         }
     }
 }

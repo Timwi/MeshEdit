@@ -113,16 +113,18 @@ namespace MeshEdit
         }
     }
 
-    sealed class DeleteVertex : UndoItem
+    sealed class DeleteVertices : UndoItem
     {
         Tuple<Face, Tuple<int, VertexInfo>[]>[] _affected;
+        Face[] _deleted;
 
-        public DeleteVertex(Tuple<Face, int[]>[] affected)
+        public DeleteVertices(Tuple<Face, int[]>[] affected, Face[] deleted)
         {
             _affected = affected.Select(af => Tuple.Create(af.Item1, af.Item2.Select(ix => Tuple.Create(ix, af.Item1.Vertices[ix])).ToArray())).ToArray();
+            _deleted = deleted;
         }
 
-        private DeleteVertex() { } // Classify
+        private DeleteVertices() { } // Classify
 
         public override void Undo()
         {
@@ -133,6 +135,7 @@ namespace MeshEdit
                     list.Insert(inner.Item1, inner.Item2);
                 tup.Item1.Vertices = list.ToArray();
             }
+            Program.Settings.Faces.AddRange(_deleted);
             Program.Settings.SelectVertices(_affected.SelectMany(tup => tup.Item2.Select(tup2 => tup2.Item2.Location)).Distinct());
         }
 
@@ -145,6 +148,7 @@ namespace MeshEdit
                     list.RemoveAt(inner.Item1);
                 tup.Item1.Vertices = list.ToArray();
             }
+            Program.Settings.Faces.RemoveRange(_deleted);
             Program.Settings.SelectVertex(null);
         }
     }

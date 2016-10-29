@@ -61,6 +61,8 @@
     <Compile Include="Program.cs" />
     <Compile Include="Pt.cs" />
     <Compile Include="Settings.cs" />
+    <Compile Include="Tools\GenerateCircle.cs" />
+    <Compile Include="Tools\GenerateInsetOld.cs" />
     <Compile Include="Tools\KtaneFriendshipButtons.cs" />
     <Compile Include="Tools\RecalculateNormals.cs" />
     <Compile Include="Tools\RecalculateTexturesKTANE.cs" />

@@ -10,7 +10,6 @@ namespace MeshEdit
         [ClassifyNotNull]
         public VertexInfo[] Vertices = new VertexInfo[0];
         public bool Hidden = false;
-        public bool SpecialTexture = false;
 
         public IEnumerable<Pt> Locations { get { return Vertices.Select(v => v.Location); } }
         public IEnumerable<PointD> Textures { get { return Vertices.Where(v => v.Texture != null).Select(v => v.Texture.Value); } }

@@ -76,7 +76,6 @@ namespace MeshEdit
             const double f = .8 * .1;
             const double innerY = .13;
             const double outerY = .150511;
-            const double normalFactor = 20;
 
             for (int k = 0; k < 3; k++)
             {
