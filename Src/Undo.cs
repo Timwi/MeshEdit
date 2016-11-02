@@ -17,6 +17,18 @@ namespace MeshEdit
         // VertexInfo, old location, new location, old normal, new normal
         private Tuple<VertexInfo, Pt, Pt, Pt?, Pt?>[] _changes;
 
+        public MoveVertices(Tuple<Pt, Pt>[] changes)
+        {
+            var list = new List<Tuple<VertexInfo, Pt, Pt, Pt?, Pt?>>();
+            foreach (var vi in Program.Settings.Faces.SelectMany(f => f.Vertices))
+            {
+                var tup = changes.IndexOf(tp => tp.Item1 == vi.Location);
+                if (tup == -1)
+                    continue;
+                list.Add(Tuple.Create(vi, vi.Location, changes[tup].Item2, vi.Normal, vi.Normal));
+            }
+            _changes = list.ToArray();
+        }
         public MoveVertices(Tuple<VertexInfo, Pt, Pt>[] changes)
         {
             _changes = changes.Select(v => Tuple.Create(v.Item1, v.Item2, v.Item3, v.Item1.Normal, v.Item1.Normal)).ToArray();

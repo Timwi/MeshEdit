@@ -876,12 +876,12 @@ namespace MeshEdit
                         var pt = trP(vertex).ToPointF();
                         e.Graphics.DrawEllipse(new Pen(Color.Navy, 2f), new RectangleF(pt - tm(_selectionSize, .5f), _selectionSize));
                         e.Graphics.DrawString((i + 1).ToString(), font, Brushes.Navy, pt + new SizeF(0, -_selectionSize.Height / 2), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Far });
-                        e.Graphics.DrawString($"{vertex}", font, Brushes.Black, pt, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                        //e.Graphics.DrawString($"{vertex}", font, Brushes.Black, pt, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
 
                         // NORMALS
-                        var j = 0;
-                        foreach (var nrml in Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Location == vertex && v.Normal != null).Select(v => v.Normal.Value).Distinct())
-                            e.Graphics.DrawString($"({nrml.X:R}, {nrml.Y:R}, {nrml.Z:R})", font, Brushes.CadetBlue, pt + new SizeF(0, 15 * (++j)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                        //var j = 0;
+                        //foreach (var nrml in Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Location == vertex && v.Normal != null).Select(v => v.Normal.Value).Distinct())
+                        //    e.Graphics.DrawString($"({nrml.X:R}, {nrml.Y:R}, {nrml.Z:R})", font, Brushes.CadetBlue, pt + new SizeF(0, 15 * (++j)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
 
                         // TEXTURES
                         //var j = 0;

@@ -64,6 +64,8 @@
     <Compile Include="Tools\GenerateCircle.cs" />
     <Compile Include="Tools\GenerateInsetOld.cs" />
     <Compile Include="Tools\KtaneFriendshipButtons.cs" />
+    <Compile Include="Tools\ArrangeInCircle.cs" />
+    <Compile Include="Tools\KtaneTheBulbRotation.cs" />
     <Compile Include="Tools\RecalculateNormals.cs" />
     <Compile Include="Tools\RecalculateTexturesKTANE.cs" />
     <Compile Include="Tools\GenerateInset.cs" />
