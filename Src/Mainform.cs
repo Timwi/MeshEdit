@@ -97,6 +97,8 @@ namespace MeshEdit
                         }).ToArray());
                 else if (line.StartsWith("#h "))
                     hiddenFacesStr = line.Substring(3);
+                else if (line.StartsWith("o "))
+                    Program.Settings.ObjectName = line.Substring(2);
             }
 
             Program.Settings.Faces = faces.Select(f => new Face(f.Select(ixs => new VertexInfo(vertices[ixs.Item1], ixs.Item2 == -1 ? (PointD?) null : textures[ixs.Item2], ixs.Item3 == -1 ? (Pt?) null : normals[ixs.Item3])).ToArray())).ToList();
@@ -287,7 +289,15 @@ namespace MeshEdit
                 var txtNs = ns.Select(n => $"vn {n.X} {n.Y} {n.Z}");
                 var txtFs = Program.Settings.Faces.Select(f => $"f {f.Vertices.Select(vi => encode(vs.IndexOf(vi.Location), vi.Texture?.Apply(t => ts.IndexOf(t)), vi.Normal?.Apply(n => ns.IndexOf(n)))).JoinString(" ")}");
                 var txtHs = "#h " + Program.Settings.Faces.SelectIndexWhere(f => f.Hidden).JoinString(",");
-                File.WriteAllLines(Program.Settings.Filename, txtVs.Concat(txtTs).Concat(txtNs).Concat(txtFs).Concat(txtHs));
+                File.WriteAllLines(Program.Settings.Filename,
+                    new[] { Program.Settings.ObjectName?.Apply(name => $"o {name}") }
+                        .Concat(txtVs)
+                        .Concat(txtTs)
+                        .Concat(txtNs)
+                        .Concat(new[] { Program.Settings.ObjectName?.Apply(name => $"g {name}") })
+                        .Concat(txtFs)
+                        .Concat(txtHs)
+                        .Where(s => s != null));
             }
 
             Program.Settings.Save(onFailure: SettingsOnFailure.ShowRetryWithCancel);
@@ -876,7 +886,7 @@ namespace MeshEdit
                         var pt = trP(vertex).ToPointF();
                         e.Graphics.DrawEllipse(new Pen(Color.Navy, 2f), new RectangleF(pt - tm(_selectionSize, .5f), _selectionSize));
                         e.Graphics.DrawString((i + 1).ToString(), font, Brushes.Navy, pt + new SizeF(0, -_selectionSize.Height / 2), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Far });
-                        //e.Graphics.DrawString($"{vertex}", font, Brushes.Black, pt, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                        e.Graphics.DrawString($"{vertex}", font, Brushes.Black, pt, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
 
                         // NORMALS
                         //var j = 0;

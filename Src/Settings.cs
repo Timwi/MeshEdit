@@ -22,6 +22,7 @@ namespace MeshEdit
 
         [ClassifyNotNull]
         public List<Face> Faces = new List<Face>();
+        public string ObjectName;
 
         [ClassifyNotNull]
         public ManagedForm.Settings MainWindowSettings = new ManagedForm.Settings();
