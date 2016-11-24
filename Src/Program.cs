@@ -32,6 +32,7 @@ namespace MeshEdit
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            bool doOpenFile = false;
             if (Settings.Filename == null || !File.Exists(Settings.Filename))
             {
                 using (var dlg = new OpenFileDialog { DefaultExt = "obj", Filter = "OBJ files (*.obj)|*.obj|All files (*.*)|*.*" })
@@ -43,10 +44,11 @@ namespace MeshEdit
                         return;
                     Settings.Filename = dlg.FileName;
                     Settings.LastDir = dlg.InitialDirectory;
+                    doOpenFile = true;
                 }
             }
 
-            Application.Run(new Mainform());
+            Application.Run(new Mainform(doOpenFile));
             Settings.Save(onFailure: SettingsOnFailure.ShowRetryWithCancel);
         }
     }

@@ -48,7 +48,7 @@ namespace MeshEdit
 
         private bool _aboutToZoom = false;
 
-        public Mainform() : base(Program.Settings.MainWindowSettings)
+        public Mainform(bool doOpenFile) : base(Program.Settings.MainWindowSettings)
         {
             if (Program.Settings.SelectedFaceIndex != null && Program.Settings.SelectedFaceIndex >= Program.Settings.Faces.Count)
                 Program.Settings.SelectedFaceIndex = null;
@@ -57,6 +57,8 @@ namespace MeshEdit
             Program.Settings.UpdateUI += updateUi;
 
             InitializeComponent();
+            if (doOpenFile)
+                openFile();
             updateUi();
         }
 
