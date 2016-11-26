@@ -103,6 +103,8 @@ namespace MeshEdit
                     Program.Settings.ObjectName = line.Substring(2);
             }
 
+            Program.Settings.SelectedFaceIndex = null;
+            Program.Settings.SelectVertex(null);
             Program.Settings.Faces = faces.Select(f => new Face(f.Select(ixs => new VertexInfo(vertices[ixs.Item1], ixs.Item2 == -1 ? (PointD?) null : textures[ixs.Item2], ixs.Item3 == -1 ? (Pt?) null : normals[ixs.Item3])).ToArray())).ToList();
             int ix;
             if (hiddenFacesStr != null)
