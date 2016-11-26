@@ -5,7 +5,7 @@ namespace MeshEdit
     public struct Pt : IEquatable<Pt>
     {
         public double X; public double Y; public double Z;
-        public override string ToString() { return string.Format("({0:R}, {1:R}, {2:R})", X, Y, Z); }
+        public override string ToString() { return string.Format("({0}, {1}, {2})", X, Y, Z); }
         public Pt(double x, double y, double z) { X = x; Y = y; Z = z; }
         public Pt Add(double x = 0, double y = 0, double z = 0) { return new Pt(X + x, Y + y, Z + z); }
         public Pt Set(double? x = null, double? y = null, double? z = null) { return new Pt(x ?? X, y ?? Y, z ?? Z); }

@@ -805,7 +805,7 @@ namespace MeshEdit
                         {
                             Program.Settings.Execute(new MoveVertices(Program.Settings.Faces.SelectMany(f => f.Vertices)
                                 .Where(v => Program.Settings.SelectedVertices.Contains(v.Location))
-                                .Select(v => Tuple.Create(v, v.Location, trP(v.Location).Apply(point => revTrP(point.X + moveX.Value, point.Y + moveY, v.Location))))
+                                .Select(v => roundedMove(v, moveX.Value, moveY))
                                 .ToArray()));
                         }
                     }
@@ -817,6 +817,29 @@ namespace MeshEdit
                 mainPanel.Refresh();
                 save();
             }
+        }
+
+        private double roundedMove(double before, double after)
+        {
+            if (before == after)
+                return after;
+            var factor = 1.0;
+            var iter = 0;
+            while (Math.Truncate(before * factor) == Math.Truncate(after * factor))
+            {
+                factor *= 10;
+                iter++;
+                if (iter >= 64)
+                    return after;
+            }
+            factor *= 10;
+            return Math.Round(after * factor) / factor;
+        }
+
+        private Tuple<VertexInfo, Pt, Pt> roundedMove(VertexInfo v, int moveX, int moveY)
+        {
+            var newLocation = trP(v.Location).Apply(point => revTrP(point.X + moveX, point.Y + moveY, v.Location));
+            return Tuple.Create(v, v.Location, new Pt(roundedMove(v.Location.X, newLocation.X), roundedMove(v.Location.Y, newLocation.Y), roundedMove(v.Location.Z, newLocation.Z)));
         }
 
         private void keyUp(object sender, KeyEventArgs e)
