@@ -671,6 +671,34 @@ namespace MeshEdit
                             case "Ctrl+Down":
                                 moveX = 0; moveY = ctrl ? 5 : 1; break;
 
+                            case "Shift+Left":
+                            case "Shift+Right":
+                            case "Shift+Up":
+                            case "Shift+Down":
+                                tryAgain:
+                                var numberStr = InputBox.GetLine("By how much?", "1", "Move vertices");
+                                if (numberStr == null)
+                                    break;
+                                double number;
+                                if (!double.TryParse(numberStr, out number))
+                                {
+                                    DlgMessage.Show("That is not a valid number.", DlgType.Info);
+                                    goto tryAgain;
+                                }
+                                double moveXA = 0, moveYA = 0;
+                                switch (combo)
+                                {
+                                    case "Shift+Left": moveXA = -number; break;
+                                    case "Shift+Right": moveXA = number; break;
+                                    case "Shift+Up": moveYA = -number; break;
+                                    case "Shift+Down": moveYA = number; break;
+                                }
+                                Program.Settings.Execute(new MoveVertices(Program.Settings.Faces.SelectMany(f => f.Vertices)
+                                    .Where(v => Program.Settings.SelectedVertices.Contains(v.Location))
+                                    .Select(v => Tuple.Create(v, v.Location, new Pt(v.Location.X + moveXA, v.Location.Y, v.Location.Z + moveYA)))
+                                    .ToArray()));
+                                break;
+
                             case "X": Clipboard.SetText(ExactConvert.ToString(Program.Settings.SelectedVertices[0].X)); anyChanges = false; break;
                             case "Y": Clipboard.SetText(ExactConvert.ToString(Program.Settings.SelectedVertices[0].Y)); anyChanges = false; break;
                             case "Z": Clipboard.SetText(ExactConvert.ToString(Program.Settings.SelectedVertices[0].Z)); anyChanges = false; break;
