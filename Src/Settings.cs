@@ -38,6 +38,9 @@ namespace MeshEdit
 
         public RectangleD? ShowingRect;
 
+        public bool ShowNormals;
+        public bool ShowTextures;
+
         public event Action UpdateUI;
 
         public void SelectFace(int? index)
