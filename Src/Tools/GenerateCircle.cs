@@ -21,7 +21,7 @@ namespace MeshEdit
             var face = Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value];
 
             const double centerX = 0;
-            const double centerZ = .1;
+            const double centerZ = 0;
 
             double centerY = face.Vertices.Aggregate(0d, (prev, next) => prev + next.Location.Y) / face.Vertices.Length;
 

@@ -719,6 +719,19 @@ namespace MeshEdit
                             case "Shift+P":
                                 if (!(clip = Clipboard.GetText()).Contains('\n') && (strSplit = clip.Split(',')).Length == 3 && ExactConvert.Try(strSplit[0], out result1) && ExactConvert.Try(strSplit[1], out result2) && ExactConvert.Try(strSplit[2], out result3))
                                     replaceVertices(result1, result2, result3);
+                                else if ((strSplit = Clipboard.GetText().Trim().Split('\n')).Length == Program.Settings.SelectedVertices.Count && strSplit.All(s => s.Split(',').Length == 3))
+                                {
+                                    var conv = strSplit.Select(s => s.Split(',')).Select(arr =>
+                                    {
+                                        double result;
+                                        return new { X = ExactConvert.Try(arr[0], out result) ? result : (double?) null, Y = ExactConvert.Try(arr[1], out result) ? result : (double?) null, Z = ExactConvert.Try(arr[2], out result) ? result : (double?) null };
+                                    }).ToArray();
+                                    if (conv.Any(c => c.X == null || c.Y == null || c.Z == null))
+                                        break;
+                                    Program.Settings.Execute(new MoveVertices(Enumerable.Range(0, strSplit.Length)
+                                        .Select(ix => Tuple.Create(Program.Settings.SelectedVertices[ix], new Pt(conv[ix].X.Value, conv[ix].Y.Value, conv[ix].Z.Value)))
+                                        .ToArray()));
+                                }
                                 break;
                             case "Shift+N":
                                 if (!(clip = Clipboard.GetText()).Contains('\n') && (strSplit = clip.Split(',')).Length == 3 && ExactConvert.Try(strSplit[0], out result1) && ExactConvert.Try(strSplit[1], out result2) && ExactConvert.Try(strSplit[2], out result3))

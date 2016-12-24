@@ -43,7 +43,7 @@ namespace MeshEdit
                     if (result == DialogResult.Cancel)
                         return;
                     Settings.Filename = dlg.FileName;
-                    Settings.LastDir = dlg.InitialDirectory;
+                    Settings.LastDir = Path.GetDirectoryName(dlg.FileName);
                     doOpenFile = true;
                 }
             }
