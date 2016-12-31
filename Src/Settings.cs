@@ -9,16 +9,18 @@ using RT.Util.Serialization;
 namespace MeshEdit
 {
     [Settings("MeshEdit", SettingsKind.UserSpecific, SettingsSerializer.ClassifyJson)]
-    sealed class Settings : SettingsBase
+    sealed class Settings : SettingsBase, IClassifyObjectProcessor
     {
         public string Filename = null;
         public string LastDir = null;
 
         [ClassifyNotNull]
         public List<Pt> SelectedVertices = new List<Pt>();
-        public int? SelectedFaceIndex = null;
+        [ClassifyNotNull]
+        public List<Face> SelectedFaces = new List<Face>();
         private bool _isFaceSelected;
-        public bool IsFaceSelected { get { return _isFaceSelected; } }
+        public bool IsFaceSelected { get { return _isFaceSelected && SelectedFaces.Count > 0; } }
+        public bool IsAnythingSelected { get { return _isFaceSelected ? SelectedFaces.Count > 0 : SelectedVertices.Count > 0; } }
 
         [ClassifyNotNull]
         public List<Face> Faces = new List<Face>();
@@ -33,8 +35,10 @@ namespace MeshEdit
         public Stack<UndoItem> Undo = new Stack<UndoItem>();
         [ClassifyNotNull]
         public Stack<UndoItem> Redo = new Stack<UndoItem>();
+
+        // Each object is either a Pt[] or a Face[]
         [ClassifyNotNull]
-        public VertexInfo[][] RememberedSelections = new VertexInfo[10][];
+        public object[] RememberedSelections = new object[10];
 
         public RectangleD? ShowingRect;
 
@@ -45,14 +49,36 @@ namespace MeshEdit
 
         public void SelectFace(int? index)
         {
-            SelectedFaceIndex = index == null || index >= 0 && index < Faces.Count ? index : null;
-            _isFaceSelected = true;
+            SelectedVertices.Clear();
+            SelectedFaces.Clear();
+            if (index != null && index.Value >= 0 && index.Value < Faces.Count)
+                SelectedFaces.Add(Faces[index.Value]);
+            _isFaceSelected = SelectedFaces.Count > 0;
+            UpdateUI?.Invoke();
+        }
+
+        public void SelectFace(Face face)
+        {
+            SelectedVertices.Clear();
+            SelectedFaces.Clear();
+            if (face != null && Faces.Contains(face))
+                SelectedFaces.Add(face);
+            _isFaceSelected = SelectedFaces.Count > 0;
+            UpdateUI?.Invoke();
+        }
+
+        public void SelectFaces(IEnumerable<Face> Faces)
+        {
+            SelectedVertices.Clear();
+            SelectedFaces = Faces.ToList();
+            _isFaceSelected = SelectedFaces.Count > 0;
             UpdateUI?.Invoke();
         }
 
         public void SelectVertex(Pt? vertex)
         {
-            SelectedVertices = new List<Pt>();
+            SelectedFaces.Clear();
+            SelectedVertices.Clear();
             if (vertex != null)
                 SelectedVertices.Add(vertex.Value);
             _isFaceSelected = false;
@@ -61,7 +87,18 @@ namespace MeshEdit
 
         public void SelectVertices(IEnumerable<Pt> vertices)
         {
-            SelectedVertices = vertices?.ToList() ?? new List<Pt>();
+            SelectedFaces.Clear();
+            SelectedVertices.Clear();
+            if (vertices != null)
+                SelectedVertices.AddRange(vertices.Distinct());
+            _isFaceSelected = false;
+            UpdateUI?.Invoke();
+        }
+
+        public void Deselect()
+        {
+            SelectedFaces.Clear();
+            SelectedVertices.Clear();
             _isFaceSelected = false;
             UpdateUI?.Invoke();
         }
@@ -72,6 +109,14 @@ namespace MeshEdit
             Redo.Clear();
             Undo.Push(ui);
             UpdateUI?.Invoke();
+        }
+
+        void IClassifyObjectProcessor.BeforeSerialize() { }
+        void IClassifyObjectProcessor.AfterDeserialize()
+        {
+            SelectedFaces = SelectedFaces.Intersect(Faces).ToList();
+            SelectedVertices = SelectedVertices.Where(v => Faces.Any(f => f.Locations.Contains(v))).ToList();
+            _isFaceSelected = SelectedFaces.Count > 0;
         }
     }
 }

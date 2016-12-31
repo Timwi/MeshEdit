@@ -65,6 +65,7 @@
     <Compile Include="Tools\GenerateInsetOld.cs" />
     <Compile Include="Tools\KtaneFriendshipButtons.cs" />
     <Compile Include="Tools\ArrangeInCircle.cs" />
+    <Compile Include="Tools\KtaneBattleshipsComponent.cs" />
     <Compile Include="Tools\KtaneTheBulbRotation.cs" />
     <Compile Include="Tools\RoundCoordinates.cs" />
     <Compile Include="Tools\SortSelection.cs" />

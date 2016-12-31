@@ -60,31 +60,6 @@ namespace MeshEdit
         }
     }
 
-    sealed class DeleteFace : UndoItem
-    {
-        Face _face;
-        int _index;
-
-        public DeleteFace(int index)
-        {
-            _face = Program.Settings.Faces[index];
-            _index = index;
-        }
-        private DeleteFace() { } // Classify
-
-        public override void Redo()
-        {
-            Program.Settings.Faces.RemoveAt(_index);
-            Program.Settings.SelectFace(null);
-        }
-
-        public override void Undo()
-        {
-            Program.Settings.Faces.Insert(_index, _face);
-            Program.Settings.SelectFace(_index);
-        }
-    }
-
     sealed class CreateVertex : UndoItem
     {
         Tuple<Face, int[]>[] _affectedFaces;
@@ -182,14 +157,14 @@ namespace MeshEdit
         {
             Program.Settings.Faces.RemoveRange(_newFaces);
             Program.Settings.Faces.AddRange(_oldFaces);
-            Program.Settings.SelectFace(_oldFaces.Length > 0 ? Program.Settings.Faces.Count - 1 : (int?) null);
+            Program.Settings.SelectFaces(_oldFaces);
         }
 
         public override void Redo()
         {
             Program.Settings.Faces.RemoveRange(_oldFaces);
             Program.Settings.Faces.AddRange(_newFaces);
-            Program.Settings.SelectFace(_newFaces.Length > 0 ? Program.Settings.Faces.Count - 1 : (int?) null);
+            Program.Settings.SelectFaces(_newFaces);
         }
     }
 
@@ -216,6 +191,30 @@ namespace MeshEdit
         {
             foreach (var tup in _faces)
                 tup.Item1.Hidden = _setTo;
+        }
+    }
+
+    sealed class ReverseFaces : UndoItem
+    {
+        Face[] _faces;
+
+        public ReverseFaces(Face[] faces)
+        {
+            _faces = faces;
+        }
+
+        private ReverseFaces() { } // Classify
+
+        public override void Undo()
+        {
+            foreach (var face in _faces)
+                face.Vertices.ReverseInplace();
+        }
+
+        public override void Redo()
+        {
+            foreach (var face in _faces)
+                face.Vertices.ReverseInplace();
         }
     }
 }

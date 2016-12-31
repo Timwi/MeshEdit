@@ -43,17 +43,10 @@ namespace MeshEdit
         // Mouse move
         private Pt? _highlightVertex;
 
-        // Oemplus key in face mode
-        private int? _selectedForFaceMerge = null;
-
         private bool _aboutToZoom = false;
 
         public Mainform(bool doOpenFile) : base(Program.Settings.MainWindowSettings)
         {
-            if (Program.Settings.SelectedFaceIndex != null && Program.Settings.SelectedFaceIndex >= Program.Settings.Faces.Count)
-                Program.Settings.SelectedFaceIndex = null;
-            Program.Settings.SelectedVertices = Program.Settings.SelectedVertices.Where(v => Program.Settings.Faces.Any(f => f.Locations.Contains(v))).ToList();
-
             Program.Settings.UpdateUI += updateUi;
 
             InitializeComponent();
@@ -103,7 +96,6 @@ namespace MeshEdit
                     Program.Settings.ObjectName = line.Substring(2);
             }
 
-            Program.Settings.SelectedFaceIndex = null;
             Program.Settings.SelectVertex(null);
             Program.Settings.Faces = faces.Select(f => new Face(f.Select(ixs => new VertexInfo(vertices[ixs.Item1], ixs.Item2 == -1 ? (PointD?) null : textures[ixs.Item2], ixs.Item3 == -1 ? (Pt?) null : normals[ixs.Item3])).ToArray())).ToList();
             int ix;
@@ -165,12 +157,25 @@ namespace MeshEdit
             var mousePos = new PointD(e.X, e.Y);
             if (e.Button.HasFlag(MouseButtons.Left) && Program.Settings.Faces.Count > 0)
             {
-                var potentialFaces = Program.Settings.Faces.SelectIndexWhere(f => new PolygonD(f.Vertices.Select(v => trP(v.Location))).ContainsPoint(mousePos)).ToArray();
+                var potentialFaces = Program.Settings.Faces.Where(f => new PolygonD(f.Vertices.Select(v => trP(v.Location))).ContainsPoint(mousePos)).ToArray();
 
                 if (_highlightVertex == null && potentialFaces.Length > 0 && !_aboutToZoom && !Ut.Ctrl)
                 {
-                    if (Program.Settings.IsFaceSelected && Program.Settings.SelectedFaceIndex != null)
-                        Program.Settings.SelectFace(potentialFaces[(potentialFaces.IndexOf(Program.Settings.SelectedFaceIndex.Value) + 1) % potentialFaces.Length]);
+                    var potentialSelectedFace = potentialFaces.FirstOrDefault(Program.Settings.SelectedFaces.Contains);
+                    if (Ut.Shift && potentialSelectedFace != null)
+                    {
+                        // Deselect a face
+                        Program.Settings.SelectedFaces.Remove(potentialSelectedFace);
+                        updateUi();
+                    }
+                    else if (Ut.Shift)
+                    {
+                        // Add a face to the selection
+                        Program.Settings.SelectedFaces.Add(potentialFaces.First(pf => !Program.Settings.SelectedFaces.Contains(pf)));
+                        updateUi();
+                    }
+                    else if (Program.Settings.IsFaceSelected && Program.Settings.SelectedFaces.Count == 1)
+                        Program.Settings.SelectFace(potentialFaces[(potentialFaces.IndexOf(Program.Settings.SelectedFaces[0]) + 1) % potentialFaces.Length]);
                     else
                         Program.Settings.SelectFace(potentialFaces[0]);
                 }
@@ -364,8 +369,7 @@ namespace MeshEdit
                     Program.Settings.Filename = null;
                     Program.Settings.Undo.Clear();
                     Program.Settings.Redo.Clear();
-                    Program.Settings.SelectedFaceIndex = null;
-                    Program.Settings.SelectVertices(null);
+                    Program.Settings.Deselect();
                     updateUi();
                     break;
 
@@ -382,8 +386,7 @@ namespace MeshEdit
                         openFile();
                         Program.Settings.Undo.Clear();
                         Program.Settings.Redo.Clear();
-                        Program.Settings.SelectedFaceIndex = null;
-                        Program.Settings.SelectVertices(null);
+                        Program.Settings.Deselect();
                     }
                     break;
 
@@ -478,12 +481,13 @@ namespace MeshEdit
                 case "D9":
                     {
                         var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
-                        if (rs != null)
-                        {
-                            Program.Settings.SelectVertices(rs.Where(v => Program.Settings.Faces.Any(f => f.Vertices.Contains(v))).Select(v => v.Location).Distinct());
-                            anyChanges = false;
-                            mainPanel.Invalidate();
-                        }
+                        var faces = rs as Face[];
+                        var vertices = rs as Pt[];
+                        if (faces != null)
+                            Program.Settings.SelectFaces(faces);
+                        else if (vertices != null)
+                            Program.Settings.SelectVertices(vertices);
+                        anyChanges = false;
                         break;
                     }
 
@@ -499,115 +503,120 @@ namespace MeshEdit
                 case "Shift+D9":
                     {
                         var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
-                        if (rs != null)
-                        {
-                            var newVertices = rs.Where(v => Program.Settings.Faces.Any(f => f.Vertices.Contains(v))).Select(v => v.Location);
-                            Program.Settings.SelectVertices(!Program.Settings.IsFaceSelected ? Program.Settings.SelectedVertices.Union(newVertices) : newVertices.Distinct());
-                            anyChanges = false;
-                            mainPanel.Invalidate();
-                        }
+                        var faces = rs as Face[];
+                        var vertices = rs as Pt[];
+                        if (faces != null)
+                            Program.Settings.SelectFaces(faces.Union(Program.Settings.IsFaceSelected ? Program.Settings.SelectedFaces : Enumerable.Empty<Face>()));
+                        else if (vertices != null)
+                            Program.Settings.SelectVertices(vertices.Union(Program.Settings.IsFaceSelected ? Enumerable.Empty<Pt>() : Program.Settings.SelectedVertices));
+                        anyChanges = false;
                         break;
                     }
 
+                case "Ctrl+D0":
+                case "Ctrl+D1":
+                case "Ctrl+D2":
+                case "Ctrl+D3":
+                case "Ctrl+D4":
+                case "Ctrl+D5":
+                case "Ctrl+D6":
+                case "Ctrl+D7":
+                case "Ctrl+D8":
+                case "Ctrl+D9":
+                    Program.Settings.RememberedSelections[combo.Last() - '0'] = Program.Settings.IsFaceSelected
+                        ? (object) Program.Settings.SelectedFaces.ToArray()
+                        : Program.Settings.SelectedVertices.ToArray();
+                    break;
+
+                case "Tab":
+                case "Shift+Tab":
+                    Program.Settings.SelectFace((Program.Settings.SelectedFaces.Select(Program.Settings.Faces.IndexOf).FirstOrDefault(shift ? Program.Settings.Faces.Count : -1) + (shift ? Program.Settings.Faces.Count - 1 : 1)) % Program.Settings.Faces.Count);
+                    break;
+
+                case "Ctrl+H":
+                    Program.Settings.Execute(new SetHidden(Program.Settings.Faces.ToArray(), true));
+                    break;
+
+                case "Ctrl+Shift+H":
+                    Program.Settings.Execute(new SetHidden(Program.Settings.Faces.ToArray(), false));
+                    break;
+
                 default:
-                    if (Program.Settings.IsFaceSelected)
+                    if (Program.Settings.IsFaceSelected && Program.Settings.SelectedFaces.Count > 0)
                     {
-                        if (Program.Settings.SelectedFaceIndex != null)
+                        switch (combo)
                         {
-                            var face = Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value];
+                            case "H":
+                                Program.Settings.Execute(new SetHidden(Program.Settings.SelectedFaces.ToArray(), !Program.Settings.SelectedFaces.First().Hidden));
+                                break;
 
-                            switch (combo)
-                            {
-                                case "Tab":
-                                case "Shift+Tab":
-                                    Program.Settings.SelectedFaceIndex = (Program.Settings.SelectedFaceIndex.Value + Program.Settings.Faces.Count + (shift ? -1 : 1)) % Program.Settings.Faces.Count;
+                            case "R":
+                                Program.Settings.Execute(new ReverseFaces(Program.Settings.SelectedFaces.ToArray()));
+                                break;
+
+                            case "Delete":
+                                Program.Settings.Execute(new AddRemoveFaces(Program.Settings.SelectedFaces.ToArray(), new Face[0]));
+                                break;
+
+                            case "Oemplus":
+                                if (Program.Settings.SelectedFaces.Count != 2)
+                                {
+                                    DlgMessage.Show("Need exactly two faces for merge.", "Merge faces", DlgType.Info);
                                     break;
+                                }
 
-                                case "H":
-                                    Program.Settings.Execute(new SetHidden(new[] { face }, !face.Hidden));
+                                var face1 = Program.Settings.SelectedFaces[0];
+                                var face2 = Program.Settings.SelectedFaces[1];
+                                var commonLocs = face1.Locations.Intersect(face2.Locations).ToArray();
+                                if (commonLocs.Length < 2)
+                                {
+                                    DlgMessage.Show("The selected faces do not have more than one vertex in common.", "Merge faces", DlgType.Info);
                                     break;
-
-                                case "R":
-                                    Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value].Vertices.ReverseInplace();
-                                    break;
-
-                                case "Ctrl+H":
-                                    Program.Settings.Execute(new SetHidden(Program.Settings.Faces.ToArray(), true));
-                                    break;
-
-                                case "Ctrl+Shift+H":
-                                    Program.Settings.Execute(new SetHidden(Program.Settings.Faces.ToArray(), false));
-                                    break;
-
-                                case "Delete":
-                                    if (Program.Settings.SelectedFaceIndex != null)
-                                        Program.Settings.Execute(new DeleteFace(Program.Settings.SelectedFaceIndex.Value));
-                                    break;
-
-                                case "Oemplus":
-                                    if (Program.Settings.SelectedFaceIndex == null)
-                                        break;
-
-                                    if (_selectedForFaceMerge == null)
-                                        _selectedForFaceMerge = Program.Settings.SelectedFaceIndex;
-                                    else
+                                }
+                                var newVertices = new List<VertexInfo>();
+                                var curFace = face1;
+                                var startVix = face1.Vertices.IndexOf(v => !commonLocs.Contains(v.Location));
+                                Ut.Assert(startVix != -1);
+                                var vix = startVix;
+                                do
+                                {
+                                    var loc = curFace.Vertices[vix].Location;
+                                    if (commonLocs.Contains(loc))
                                     {
-                                        var face1 = Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value];
-                                        var face2 = Program.Settings.Faces[_selectedForFaceMerge.Value];
-                                        var commonLocs = face1.Locations.Intersect(face2.Locations).ToArray();
-                                        var newVertices = new List<VertexInfo>();
-                                        var curFace = face1;
-                                        var startVix = face1.Vertices.IndexOf(v => !commonLocs.Contains(v.Location));
-                                        Ut.Assert(startVix != -1);
-                                        var vix = startVix;
-                                        do
+                                        vix = face1.Locations.IndexOf(loc);
+                                        var vix2 = face2.Locations.IndexOf(loc);
+                                        Ut.Assert(vix != -1);
+                                        Ut.Assert(vix2 != -1);
+
+                                        // Generate the averaged vertex
+                                        newVertices.Add(new VertexInfo(
+                                            loc,
+                                            (face1.Vertices[vix].Texture + face2.Vertices[vix2].Texture) / 2,
+                                            (face1.Vertices[vix].Normal + face2.Vertices[vix2].Normal) / 2));
+
+                                        // Switch faces
+                                        if (curFace == face1)
                                         {
-                                            var loc = curFace.Vertices[vix].Location;
-                                            if (commonLocs.Contains(loc))
-                                            {
-                                                vix = face1.Locations.IndexOf(loc);
-                                                var vix2 = face2.Locations.IndexOf(loc);
-                                                Ut.Assert(vix != -1);
-                                                Ut.Assert(vix2 != -1);
-
-                                                // Generate the averaged vertex
-                                                newVertices.Add(new VertexInfo(
-                                                    loc,
-                                                    (face1.Vertices[vix].Texture + face2.Vertices[vix2].Texture) / 2,
-                                                    (face1.Vertices[vix].Normal + face2.Vertices[vix2].Normal) / 2));
-
-                                                // Switch faces
-                                                if (curFace == face1)
-                                                {
-                                                    curFace = face2;
-                                                    vix = vix2;
-                                                }
-                                                else
-                                                    curFace = face1;
-                                            }
-                                            else
-                                                newVertices.Add(curFace.Vertices[vix]);
-                                            vix = (vix + 1) % curFace.Vertices.Length;
+                                            curFace = face2;
+                                            vix = vix2;
                                         }
-                                        while (curFace != face1 || vix != startVix);
-                                        Program.Settings.Execute(new AddRemoveFaces(new[] { face1, face2 }, new[] { new Face(newVertices.ToArray(), face1.Hidden && face2.Hidden) }));
-                                        _selectedForFaceMerge = null;
+                                        else
+                                            curFace = face1;
                                     }
-                                    break;
+                                    else
+                                        newVertices.Add(curFace.Vertices[vix]);
+                                    vix = (vix + 1) % curFace.Vertices.Length;
+                                }
+                                while (curFace != face1 || vix != startVix);
+                                Program.Settings.Execute(new AddRemoveFaces(new[] { face1, face2 }, new[] { new Face(newVertices.ToArray(), face1.Hidden && face2.Hidden) }));
+                                break;
 
-                                default:
-                                    anyChanges = false;
-                                    break;
-                            }
+                            default:
+                                anyChanges = false;
+                                break;
                         }
-                        else if (combo == "Tab" && Program.Settings.Faces.Count > 0)
-                            Program.Settings.SelectedFaceIndex = 0;
-                        else if (combo == "Shift+Tab" && Program.Settings.Faces.Count > 0)
-                            Program.Settings.SelectedFaceIndex = Program.Settings.Faces.Count - 1;
-                        else
-                            anyChanges = false;
                     }
-                    else
+                    else if (!Program.Settings.IsFaceSelected && Program.Settings.SelectedVertices.Count > 0)
                     {
                         int? moveX = null;
                         int moveY = 0;
@@ -743,20 +752,6 @@ namespace MeshEdit
                             case "Alt+Left": case "Alt+Shift+Left": processArrow(4); break;
                             case "Alt+Up": case "Alt+Shift+Up": processArrow(6); break;
 
-                            case "Ctrl+D0":
-                            case "Ctrl+D1":
-                            case "Ctrl+D2":
-                            case "Ctrl+D3":
-                            case "Ctrl+D4":
-                            case "Ctrl+D5":
-                            case "Ctrl+D6":
-                            case "Ctrl+D7":
-                            case "Ctrl+D8":
-                            case "Ctrl+D9":
-                                Program.Settings.RememberedSelections[combo.Last() - '0'] = Program.Settings.SelectedVertices.Select(loc => Program.Settings.Faces.SelectMany(f => f.Vertices).FirstOrDefault(v => v.Location == loc)).ToArray();
-                                anyChanges = false;
-                                break;
-
                             case "R":
                                 Program.Settings.SelectedVertices.Reverse();
                                 break;
@@ -859,6 +854,8 @@ namespace MeshEdit
                                 .ToArray()));
                         }
                     }
+                    else
+                        anyChanges = false;
                     break;
             }
 
@@ -984,14 +981,12 @@ namespace MeshEdit
             if (_highlightVertex != null)
                 e.Graphics.DrawEllipse(new Pen(Color.Silver, 2f), new RectangleF(trP(_highlightVertex.Value).ToPointF() - new SizeF(_selectionSize.Width, _selectionSize.Height), tm(_selectionSize, 2)));
 
-            // Selected face
-            if (Program.Settings.IsFaceSelected && Program.Settings.SelectedFaceIndex != null)
-            {
-                var face = Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value];
-                e.Graphics.FillPolygon(
-                    brush: new SolidBrush(Color.FromArgb(64, Color.Navy)),
-                    points: face.Locations.Select(v => trP(v).ToPointF()).ToArray());
-            }
+            // Selected faces
+            if (Program.Settings.IsFaceSelected)
+                foreach (var face in Program.Settings.SelectedFaces)
+                    e.Graphics.FillPolygon(
+                        brush: new SolidBrush(Color.FromArgb(64, Color.Navy)),
+                        points: face.Locations.Select(v => trP(v).ToPointF()).ToArray());
 
             // Select-from “cone” (Alt+Arrow)
             if (_selectingFromVertex != null && _selectingDirection != null && _selectingFrom != null)

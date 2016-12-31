@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Linq;
 using RT.Util.Dialogs;
 using RT.Util.ExtensionMethods;
 
@@ -13,12 +9,12 @@ namespace MeshEdit
         [Tool("Generate a circle inside a face")]
         public static void GenerateCircle([ToolDouble("Radius of the circle?")] double radius, [ToolInt("Number of points?")] int steps)
         {
-            if (!Program.Settings.IsFaceSelected || Program.Settings.SelectedFaceIndex == null)
+            if (!Program.Settings.IsFaceSelected || Program.Settings.SelectedFaces.Count != 1)
             {
-                DlgMessage.ShowInfo("Need a selected face for this tool.");
+                DlgMessage.ShowInfo("Need exactly one selected face for this tool.");
                 return;
             }
-            var face = Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value];
+            var face = Program.Settings.SelectedFaces[0];
 
             const double centerX = 0;
             const double centerZ = 0;

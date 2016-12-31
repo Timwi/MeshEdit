@@ -12,12 +12,12 @@ namespace MeshEdit
         [Tool("KTANE Friendship — submit button")]
         public static void KtaneFriendshipSubmitButton()
         {
-            if (!Program.Settings.IsFaceSelected || Program.Settings.SelectedFaceIndex == null)
+            if (!Program.Settings.IsFaceSelected || Program.Settings.SelectedFaces.Count != 1)
             {
-                DlgMessage.ShowInfo("Need a selected face for this tool.");
+                DlgMessage.ShowInfo("Need exactly one selected face for this tool.");
                 return;
             }
-            var face = Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value];
+            var face = Program.Settings.SelectedFaces[0];
 
             const double centerX = -0.64;
             const double centerZ = 0.3;
