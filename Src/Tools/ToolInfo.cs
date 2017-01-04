@@ -13,6 +13,8 @@ namespace MeshEdit
         public ToolAttribute Attribute { get; private set; }
         public ToolParamAttribute[] Parameters { get; private set; }
 
+        public object[] LastArguments { get; set; }
+
         private ToolInfo() { }
 
         public static ToolInfo CreateFromMethod(MethodInfo method)
@@ -41,7 +43,7 @@ namespace MeshEdit
     {
         public string Prompt { get; private set; }
         public ToolParamAttribute(string prompt) { Prompt = prompt; }
-        public abstract bool AskForValue(string parameterName, out object value);
+        public abstract bool AskForValue(string parameterName, ref object value);
     }
 
     sealed class ToolBoolAttribute : ToolParamAttribute
@@ -54,7 +56,7 @@ namespace MeshEdit
         public string ReadableFalseName { get; private set; }
         public string ReadableTrueName { get; private set; }
 
-        public override bool AskForValue(string parameterName, out object value)
+        public override bool AskForValue(string parameterName, ref object value)
         {
             var result = DlgMessage.Show(Prompt, parameterName, DlgType.Question, ReadableFalseName, ReadableTrueName, "Cancel");
             value = result == 0 ? false : result == 1 ? true : (object) null;
@@ -66,36 +68,35 @@ namespace MeshEdit
     {
         public ToolInputBoxAttribute(string prompt) : base(prompt) { }
 
-        public override bool AskForValue(string parameterName, out object value)
+        public override bool AskForValue(string parameterName, ref object value)
         {
-            value = null;
             tryAgain:
-            var result = InputBox.GetLine(Prompt, caption: "Parameter");
+            var result = InputBox.GetLine(Prompt, @default: value?.ToString() ?? "", caption: "Parameter");
             if (result == null)
                 return false;
-            if (!tryParse(result, out value))
+            if (!tryParse(result, ref value))
             {
                 var result2 = DlgMessage.Show("The value is not valid. Do you want to try again?", "Error", DlgType.Error, "&Yes", "&No");
                 if (result2 == 0)
                     goto tryAgain;
-                value = null;
                 return false;
             }
             return true;
         }
 
-        protected abstract bool tryParse(string input, out object value);
+        protected abstract bool tryParse(string input, ref object value);
     }
 
     sealed class ToolDoubleAttribute : ToolInputBoxAttribute
     {
         public ToolDoubleAttribute(string prompt) : base(prompt) { }
 
-        protected override bool tryParse(string input, out object value)
+        protected override bool tryParse(string input, ref object value)
         {
             double dbl;
             var ret = double.TryParse(input, out dbl);
-            value = ret ? dbl : (object) null;
+            if (ret)
+                value = dbl;
             return ret;
         }
     }
@@ -104,11 +105,12 @@ namespace MeshEdit
     {
         public ToolIntAttribute(string prompt) : base(prompt) { }
 
-        protected override bool tryParse(string input, out object value)
+        protected override bool tryParse(string input, ref object value)
         {
-            int dbl;
-            var ret = int.TryParse(input, out dbl);
-            value = ret ? dbl : (object) null;
+            int integer;
+            var ret = int.TryParse(input, out integer);
+            if (ret)
+                value = integer;
             return ret;
         }
     }

@@ -324,6 +324,8 @@ namespace MeshEdit
                 return $"{vix + 1}/{tix + 1}/{nix + 1}";
         }
 
+        private ToolInfo[] _tools;
+
         private void keyDown(object sender, KeyEventArgs e)
         {
             var shift = e.KeyData.HasFlag(Keys.Shift);
@@ -429,11 +431,14 @@ namespace MeshEdit
                 case "T":
                     using (var dlg = new ManagedForm(Program.Settings.ToolWindowSettings) { Text = "Use custom tool", FormBorderStyle = FormBorderStyle.Sizable, MinimizeBox = false, MaximizeBox = false, ControlBox = false, ShowInTaskbar = false })
                     {
-                        var cmb = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false };
-                        cmb.Items.AddRange(typeof(Tools).GetMethods()
+                        if (_tools == null)
+                            _tools = typeof(Tools).GetMethods()
                             .Select(m => ToolInfo.CreateFromMethod(m))
                             .Where(inf => inf != null)
-                            .OrderBy(t => t.Attribute.ReadableName).ToArray<object>());
+                                .OrderBy(t => t.Attribute.ReadableName).ToArray();
+
+                        var cmb = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false };
+                        cmb.Items.AddRange(_tools);
 
                         var btnOk = new Button { Text = "&OK" };
                         btnOk.Click += delegate { dlg.DialogResult = DialogResult.OK; };
@@ -458,10 +463,10 @@ namespace MeshEdit
                         if (dlg.ShowDialog() == DialogResult.OK && cmb.SelectedItem != null)
                         {
                             var ti = (ToolInfo) cmb.SelectedItem;
-                            var args = new object[ti.Parameters.Length];
+                            var args = ti.LastArguments ?? (ti.LastArguments = new object[ti.Parameters.Length]);
                             var paramNames = ti.Method.GetParameters().Select(p => p.Name).ToArray();
                             for (int i = 0; i < ti.Parameters.Length; i++)
-                                if (!ti.Parameters[i].AskForValue(paramNames[i], out args[i]))
+                                if (!ti.Parameters[i].AskForValue(paramNames[i], ref args[i]))
                                     goto outtaHere;
                             ti.Method.Invoke(null, args);
                         }
