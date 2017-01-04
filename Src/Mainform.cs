@@ -338,20 +338,9 @@ namespace MeshEdit
             {
                 case "F":
                     if (Program.Settings.IsFaceSelected)
-                    {
-                        Program.Settings.SelectVertices(Program.Settings.SelectedVertices);
-                        //if (Program.Settings.SelectedFaceIndex != null && Program.Settings.SelectedFaceIndex == _lastFaceFromVertexIndex &&
-                        //    _lastFaceFromVertex != null && Program.Settings.Faces[_lastFaceFromVertexIndex.Value].Locations.Contains(_lastFaceFromVertex.Value))
-                        //    Program.Settings.SelectedVertex = _lastFaceFromVertex;
-                        //else if (Program.Settings.SelectedFaceIndex != null)
-                        //    Program.Settings.SelectedVertex = Program.Settings.Faces[Program.Settings.SelectedFaceIndex.Value].Locations.FirstOrNull();
-                        //else
-                        //    Program.Settings.SelectedVertex = null;
-                    }
+                        Program.Settings.SelectVertices(Program.Settings.SelectedFaces.SelectMany(f => f.Vertices).Select(v => v.Location).Distinct());
                     else
-                    {
-                        Program.Settings.SelectFace(Program.Settings.Faces.SelectIndexWhere(f => Program.Settings.SelectedVertices.All(f.Locations.Contains)).FirstOrNull());
-                    }
+                        Program.Settings.SelectFaces(Program.Settings.Faces.Where(f => f.Vertices.All(v => Program.Settings.SelectedVertices.Contains(v.Location))));
                     break;
 
                 case "Ctrl+Z": case "Alt+Back": undo(); break;
