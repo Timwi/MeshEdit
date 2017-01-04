@@ -7,7 +7,7 @@ namespace MeshEdit
     static partial class Tools
     {
         [Tool("Generate a circle inside a face")]
-        public static void GenerateCircle([ToolDouble("Radius of the circle?")] double radius, [ToolInt("Number of points?")] int steps)
+        public static void GenerateCircle([ToolDouble("Center X?")] double centerX, [ToolDouble("Center Z?")] double centerZ, [ToolDouble("Radius of the circle?")] double radius, [ToolInt("Number of points?")] int steps)
         {
             if (!Program.Settings.IsFaceSelected || Program.Settings.SelectedFaces.Count != 1)
             {
@@ -15,9 +15,6 @@ namespace MeshEdit
                 return;
             }
             var face = Program.Settings.SelectedFaces[0];
-
-            const double centerX = 0;
-            const double centerZ = 0;
 
             double centerY = face.Vertices.Aggregate(0d, (prev, next) => prev + next.Location.Y) / face.Vertices.Length;
 

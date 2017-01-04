@@ -17,8 +17,8 @@ namespace MeshEdit
                 .SelectMany(f => f.Vertices.Select((v, i) => new { Face = f, Vertex = v, Index = i }))
                 .Where(inf => Program.Settings.Faces.Where(f => f.Locations.Contains(inf.Vertex.Location)).All(f => !f.Hidden) && (Program.Settings.SelectedVertices.Count == 0 || Program.Settings.SelectedVertices.Contains(inf.Vertex.Location)))
                 .Select(inf => Tuple.Create(inf.Vertex, inf.Vertex.Normal,
-                    (inf.Face.Vertices[(inf.Index + 1) % inf.Face.Vertices.Length].Location - inf.Vertex.Location) *
-                    (inf.Face.Vertices[(inf.Index + inf.Face.Vertices.Length - 1) % inf.Face.Vertices.Length].Location - inf.Vertex.Location)));
+                    ((inf.Face.Vertices[(inf.Index + 1) % inf.Face.Vertices.Length].Location - inf.Vertex.Location) *
+                    (inf.Face.Vertices[(inf.Index + inf.Face.Vertices.Length - 1) % inf.Face.Vertices.Length].Location - inf.Vertex.Location)).Normalize()));
 
             if (average)
             {

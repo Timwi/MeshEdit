@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using RT.Util;
 using RT.Util.Dialogs;
 using RT.Util.ExtensionMethods;
 
@@ -10,7 +8,7 @@ namespace MeshEdit
     static partial class Tools
     {
         [Tool("Generate beveled inset")]
-        public static void GenerateInset([ToolDouble("Bevel radius?")] double radius, [ToolBool("Closed curve?", "Open", "Closed")] bool closed)
+        public static void GenerateInset([ToolDouble("Bevel radius?")] double radius, [ToolBool("Closed curve?", "Open", "Closed")] bool closed, [ToolDouble("Extra wall depth?")] double extraWallDepth)
         {
             if (Program.Settings.SelectedVertices.Count < (closed ? 3 : 2))
             {
@@ -18,10 +16,10 @@ namespace MeshEdit
                 return;
             }
 
-            Program.Settings.Execute(new AddRemoveFaces(null, bevelFromCurve(Program.Settings.SelectedVertices, radius, 12, closed).Select(f => new Face(f, false)).ToArray()));
+            Program.Settings.Execute(new AddRemoveFaces(null, bevelFromCurve(Program.Settings.SelectedVertices, radius, extraWallDepth, 12, closed).Select(f => new Face(f, false)).ToArray()));
         }
 
-        private static IEnumerable<VertexInfo[]> bevelFromCurve(List<Pt> pts, double radius, int revSteps, bool closed)
+        private static IEnumerable<VertexInfo[]> bevelFromCurve(List<Pt> pts, double radius, double extraWallDepth, int revSteps, bool closed)
         {
             var nPts = pts
                 .Select((p, ix) => new
@@ -35,6 +33,7 @@ namespace MeshEdit
                 .Select(inf => Enumerable.Range(0, revSteps)
                     .Select(i => -90 * i / (revSteps - 1))
                     .Select(angle => new { Center = inf.Center, Rotated = inf.Perpendicular.Rotate(inf.AxisStart, inf.AxisEnd, angle) })
+                    .Concat(new { Center = inf.Center.Add(y: radius - extraWallDepth), Rotated = inf.Perpendicular.Rotate(inf.AxisStart, inf.AxisEnd, -90).Add(y: radius - extraWallDepth) })
                     .ToArray())
                 .ToArray();
 
