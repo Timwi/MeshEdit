@@ -725,11 +725,14 @@ namespace MeshEdit
                             case "X": Clipboard.SetText(ExactConvert.ToString(Program.Settings.SelectedVertices[0].X)); anyChanges = false; break;
                             case "Y": Clipboard.SetText(ExactConvert.ToString(Program.Settings.SelectedVertices[0].Y)); anyChanges = false; break;
                             case "Z": Clipboard.SetText(ExactConvert.ToString(Program.Settings.SelectedVertices[0].Z)); anyChanges = false; break;
-                            case "P": Clipboard.SetText(Program.Settings.SelectedVertices.Select(t => $"{t.X:R},{t.Y:R},{t.Z:R}").JoinString(Environment.NewLine)); anyChanges = false; break;
-                            case "N": Clipboard.SetText(Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => Program.Settings.SelectedVertices.Contains(v.Location)).Where(v => v.Normal != null).Select(v => v.Normal.Value).Select(n => $"{n.X:R},{n.Y:R},{n.Z:R}").JoinString(Environment.NewLine)); anyChanges = false; break;
                             case "Shift+X": if (ExactConvert.Try(Clipboard.GetText(), out result1)) { replaceVertices(x: result1); } break;
                             case "Shift+Y": if (ExactConvert.Try(Clipboard.GetText(), out result1)) { replaceVertices(y: result1); } break;
                             case "Shift+Z": if (ExactConvert.Try(Clipboard.GetText(), out result1)) { replaceVertices(z: result1); } break;
+
+                            case "P":
+                                Clipboard.SetText(Program.Settings.SelectedVertices.Select(t => $"{t.X:R},{t.Y:R},{t.Z:R}").JoinString(Environment.NewLine));
+                                anyChanges = false;
+                                break;
                             case "Shift+P":
                                 if (!(clip = Clipboard.GetText()).Contains('\n') && (strSplit = clip.Split(',')).Length == 3 && ExactConvert.Try(strSplit[0], out result1) && ExactConvert.Try(strSplit[1], out result2) && ExactConvert.Try(strSplit[2], out result3))
                                     replaceVertices(result1, result2, result3);
@@ -747,9 +750,32 @@ namespace MeshEdit
                                         .ToArray()));
                                 }
                                 break;
+
+                            case "N":
+                                {
+                                    var vertexInfos = Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Normal != null && Program.Settings.SelectedVertices.Contains(v.Location)).ToArray();
+                                    Clipboard.SetText(vertexInfos.Select(v => v.Normal.Value).Select(n => $"{n.X:R},{n.Y:R},{n.Z:R}").JoinString(Environment.NewLine));
+                                    anyChanges = false;
+                                }
+                                break;
                             case "Shift+N":
                                 if (!(clip = Clipboard.GetText()).Contains('\n') && (strSplit = clip.Split(',')).Length == 3 && ExactConvert.Try(strSplit[0], out result1) && ExactConvert.Try(strSplit[1], out result2) && ExactConvert.Try(strSplit[2], out result3))
                                     replaceNormals(result1, result2, result3);
+                                else
+                                {
+                                    var vertexInfos = Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Normal != null && Program.Settings.SelectedVertices.Contains(v.Location)).ToArray();
+                                    if ((strSplit = Clipboard.GetText().Trim().Split('\n')).Length == vertexInfos.Length && strSplit.All(s => s.Split(',').Length == 3))
+                                    {
+                                        var conv = strSplit.Select(s => s.Split(',')).Select(arr =>
+                                        {
+                                            double result;
+                                            return new { X = ExactConvert.Try(arr[0], out result) ? result : (double?) null, Y = ExactConvert.Try(arr[1], out result) ? result : (double?) null, Z = ExactConvert.Try(arr[2], out result) ? result : (double?) null };
+                                        }).ToArray();
+                                        if (conv.Any(c => c.X == null || c.Y == null || c.Z == null)||conv.Length!=vertexInfos.Length)
+                                            break;
+                                        Program.Settings.Execute(new MoveVertices(vertexInfos.Select((v, ix) => Tuple.Create(v, v.Location, v.Location, v.Normal, new Pt(conv[ix].X.Value, conv[ix].Y.Value, conv[ix].Z.Value).Nullable())).ToArray()));
+                                    }
+                                }
                                 break;
 
                             case "Alt+Right": case "Alt+Shift+Right": processArrow(0); break;
