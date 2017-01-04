@@ -422,8 +422,8 @@ namespace MeshEdit
                     {
                         if (_tools == null)
                             _tools = typeof(Tools).GetMethods()
-                            .Select(m => ToolInfo.CreateFromMethod(m))
-                            .Where(inf => inf != null)
+                                .Select(m => ToolInfo.CreateFromMethod(m))
+                                .Where(inf => inf != null)
                                 .OrderBy(t => t.Attribute.ReadableName).ToArray();
 
                         var cmb = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false };

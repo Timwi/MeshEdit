@@ -59,18 +59,18 @@ namespace MeshEdit
 
         public void SelectFace(Face face)
         {
-            SelectedVertices.Clear();
             SelectedFaces.Clear();
             if (face != null && Faces.Contains(face))
                 SelectedFaces.Add(face);
+            SelectedVertices.Clear();
             _isFaceSelected = SelectedFaces.Count > 0;
             UpdateUI?.Invoke();
         }
 
         public void SelectFaces(IEnumerable<Face> Faces)
         {
-            SelectedVertices.Clear();
             SelectedFaces = Faces.ToList();
+            SelectedVertices.Clear();
             _isFaceSelected = SelectedFaces.Count > 0;
             UpdateUI?.Invoke();
         }
@@ -87,10 +87,10 @@ namespace MeshEdit
 
         public void SelectVertices(IEnumerable<Pt> vertices)
         {
-            SelectedFaces.Clear();
             SelectedVertices.Clear();
             if (vertices != null)
                 SelectedVertices.AddRange(vertices.Distinct());
+            SelectedFaces.Clear();
             _isFaceSelected = false;
             UpdateUI?.Invoke();
         }
