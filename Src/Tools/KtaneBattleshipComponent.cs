@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Windows.Forms;
-using RT.Util.Dialogs;
 
 namespace MeshEdit
 {
     static partial class Tools
     {
-        [Tool("KTANE Battleships Component")]
-        public static void KtaneBattleshipsComponent()
+        [Tool("KTANE Battleship Component")]
+        public static void KtaneBattleshipComponent()
         {
             var size = 5;
 
