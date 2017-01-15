@@ -217,4 +217,24 @@ namespace MeshEdit
                 face.Vertices.ReverseInplace();
         }
     }
+
+    sealed class ModifyTextureCoordinates : UndoItem
+    {
+        Tuple<VertexInfo, PointD?, PointD>[] _data;
+
+        public ModifyTextureCoordinates(Tuple<VertexInfo, PointD?, PointD>[] data) { _data = data; }
+        private ModifyTextureCoordinates() { } // Classify
+
+        public override void Undo()
+        {
+            foreach (var tup in _data)
+                tup.Item1.Texture = tup.Item2;
+        }
+
+        public override void Redo()
+        {
+            foreach (var tup in _data)
+                tup.Item1.Texture = tup.Item3;
+        }
+    }
 }
