@@ -13,8 +13,6 @@ namespace MeshEdit
         public ToolAttribute Attribute { get; private set; }
         public ToolParamAttribute[] Parameters { get; private set; }
 
-        public object[] LastArguments { get; set; }
-
         private ToolInfo() { }
 
         public static ToolInfo CreateFromMethod(MethodInfo method)

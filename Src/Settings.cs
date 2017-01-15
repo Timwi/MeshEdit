@@ -45,6 +45,9 @@ namespace MeshEdit
         public bool ShowNormals;
         public bool ShowTextures;
 
+        [ClassifyNotNull]
+        public Dictionary<string, object[]> LastToolArguments = new Dictionary<string, object[]>();
+
         public event Action UpdateUI;
 
         public void SelectFace(int? index)

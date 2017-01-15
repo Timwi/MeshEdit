@@ -410,14 +410,17 @@ namespace MeshEdit
                         _aboutToZoom = true;
                         Cursor = Cursors.Cross;
                     }
+                    anyChanges = false;
                     break;
 
                 case "Oem6":    // ]
                     Program.Settings.ShowingRect = null;
                     recalculateBounds();
+                    anyChanges = false;
                     break;
 
                 case "T":
+                    anyChanges = false;
                     using (var dlg = new ManagedForm(Program.Settings.ToolWindowSettings) { Text = "Use custom tool", FormBorderStyle = FormBorderStyle.Sizable, MinimizeBox = false, MaximizeBox = false, ControlBox = false, ShowInTaskbar = false })
                     {
                         if (_tools == null)
@@ -452,12 +455,18 @@ namespace MeshEdit
                         if (dlg.ShowDialog() == DialogResult.OK && cmb.SelectedItem != null)
                         {
                             var ti = (ToolInfo) cmb.SelectedItem;
-                            var args = ti.LastArguments ?? (ti.LastArguments = new object[ti.Parameters.Length]);
+                            var args = Program.Settings.LastToolArguments.Get(ti.Method.Name, null)?.ToArray() ?? new object[ti.Parameters.Length];
+                            if (args.Length != ti.Parameters.Length)
+                                Array.Resize(ref args, ti.Parameters.Length);
                             var paramNames = ti.Method.GetParameters().Select(p => p.Name).ToArray();
                             for (int i = 0; i < ti.Parameters.Length; i++)
                                 if (!ti.Parameters[i].AskForValue(paramNames[i], ref args[i]))
                                     goto outtaHere;
+                            Program.Settings.LastToolArguments[ti.Method.Name] = args;
+                            foreach (var extraneousKey in Program.Settings.LastToolArguments.Keys.Except(_tools.Select(t => t.Method.Name)).ToArray())
+                                Program.Settings.LastToolArguments.Remove(extraneousKey);
                             ti.Method.Invoke(null, args);
+                            anyChanges = true;
                         }
                     }
                     outtaHere:
@@ -760,7 +769,7 @@ namespace MeshEdit
                                             double result;
                                             return new { X = ExactConvert.Try(arr[0], out result) ? result : (double?) null, Y = ExactConvert.Try(arr[1], out result) ? result : (double?) null, Z = ExactConvert.Try(arr[2], out result) ? result : (double?) null };
                                         }).ToArray();
-                                        if (conv.Any(c => c.X == null || c.Y == null || c.Z == null)||conv.Length!=vertexInfos.Length)
+                                        if (conv.Any(c => c.X == null || c.Y == null || c.Z == null) || conv.Length != vertexInfos.Length)
                                             break;
                                         Program.Settings.Execute(new MoveVertices(vertexInfos.Select((v, ix) => Tuple.Create(v, v.Location, v.Location, v.Normal, new Pt(conv[ix].X.Value, conv[ix].Y.Value, conv[ix].Z.Value).Nullable())).ToArray()));
                                     }
