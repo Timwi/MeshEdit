@@ -12,6 +12,8 @@ using RT.Util.Dialogs;
 using RT.Util.ExtensionMethods;
 using RT.Util.Forms;
 using RT.Util.Geometry;
+using RT.Util.Json;
+using RT.Util.Serialization;
 
 namespace MeshEdit
 {
@@ -549,6 +551,16 @@ namespace MeshEdit
                     {
                         switch (combo)
                         {
+                            case "Ctrl+C":
+                                Clipboard.SetText(ClassifyJson.Serialize(Program.Settings.SelectedFaces).ToStringIndented());
+                                anyChanges = false;
+                                break;
+
+                            case "Ctrl+V":
+                                try { Program.Settings.Execute(new AddRemoveFaces(null, ClassifyJson.Deserialize<Face[]>(JsonValue.Parse(Clipboard.GetText())))); }
+                                catch { DlgMessage.Show("The text in the clipboard could not be parsed as a set of faces. (If you copied a set of vertices instead of faces, you cannot paste that.)", "Paste faces", DlgType.Error); }
+                                break;
+
                             case "H":
                                 Program.Settings.Execute(new SetHidden(Program.Settings.SelectedFaces.ToArray(), !Program.Settings.SelectedFaces.First().Hidden));
                                 break;
@@ -677,6 +689,10 @@ namespace MeshEdit
                             case "H":
                             case "Shift+H":
                                 Program.Settings.Execute(new SetHidden(Program.Settings.Faces.Where(f => Program.Settings.SelectedVertices.Any(f.Locations.Contains)).ToArray(), !shift));
+                                break;
+
+                            case "Shift+F":
+                                Program.Settings.SelectFaces(Program.Settings.Faces.Where(f => f.Vertices.Any(v => Program.Settings.SelectedVertices.Contains(v.Location))));
                                 break;
 
                             case "Left":

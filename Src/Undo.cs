@@ -208,13 +208,23 @@ namespace MeshEdit
         public override void Undo()
         {
             foreach (var face in _faces)
+            {
                 face.Vertices.ReverseInplace();
+                foreach (var v in face.Vertices)
+                    if (v.Normal != null)
+                        v.Normal = -v.Normal.Value;
+            }
         }
 
         public override void Redo()
         {
             foreach (var face in _faces)
+            {
                 face.Vertices.ReverseInplace();
+                foreach (var v in face.Vertices)
+                    if (v.Normal != null)
+                        v.Normal = -v.Normal.Value;
+            }
         }
     }
 
