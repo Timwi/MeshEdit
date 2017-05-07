@@ -686,6 +686,26 @@ namespace MeshEdit
                                 anyChanges = false;
                                 break;
 
+                            case "Ctrl+V":
+                                var matches = Clipboard.GetText().Replace("\r", "").Split('\n').Select(r => Regex.Match(r, @"^\s*\(\s*(-?\d*\.?\d+(?:e\d+)?)\s*,\s*(-?\d*\.?\d+(?:e\d+)?)\s*,\s*(-?\d*\.?\d+(?:e\d+)?)\s*\)\s*$")).ToArray();
+                                if (matches.Any(m => !m.Success) || matches.Length != Program.Settings.SelectedVertices.Count)
+                                {
+                                    DlgMessage.Show("The clipboard does not contain a set of coordinates equal to the number of currently selected vertices.", "Error", DlgType.Error);
+                                    break;
+                                }
+                                var vertices = matches.Select(m =>
+                                {
+                                    try { return new Pt(double.Parse(m.Groups[1].Value), double.Parse(m.Groups[2].Value), double.Parse(m.Groups[3].Value)); }
+                                    catch { return (Pt?) null; }
+                                }).ToArray();
+                                if (vertices.Any(v => v == null))
+                                {
+                                    DlgMessage.Show($"Vertex #{vertices.IndexOf(v => v == null) + 1} in the clipboard does not parse.", "Error", DlgType.Error);
+                                    break;
+                                }
+                                Program.Settings.Execute(new MoveVertices(vertices.Select((v, ix) => Tuple.Create(Program.Settings.SelectedVertices[ix], v.Value)).ToArray()));
+                                break;
+
                             case "H":
                             case "Shift+H":
                                 Program.Settings.Execute(new SetHidden(Program.Settings.Faces.Where(f => Program.Settings.SelectedVertices.Any(f.Locations.Contains)).ToArray(), !shift));
