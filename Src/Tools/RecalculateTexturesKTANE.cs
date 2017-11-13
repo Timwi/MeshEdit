@@ -6,8 +6,8 @@ namespace MeshEdit
 {
     static partial class Tools
     {
-        [Tool("Recalculate texture coordinates (KTANE component)")]
-        public static void RecalculateTexturesKTANE()
+        [Tool("KTANE: Recalculate texture coordinates")]
+        public static void KTANERecalculateTextures()
         {
             Program.Settings.Execute(new ModifyTextureCoordinates(
                 Program.Settings.Faces

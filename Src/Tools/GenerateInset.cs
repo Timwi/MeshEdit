@@ -33,7 +33,7 @@ namespace MeshEdit
                 .Select(inf => Enumerable.Range(0, revSteps)
                     .Select(i => -90 * i / (revSteps - 1))
                     .Select(angle => new { Center = inf.Center, Rotated = inf.Perpendicular.Rotate(inf.AxisStart, inf.AxisEnd, angle) })
-                    .Concat(new { Center = inf.Center.Add(y: radius - extraWallDepth), Rotated = inf.Perpendicular.Rotate(inf.AxisStart, inf.AxisEnd, -90).Add(y: radius - extraWallDepth) })
+                    .Concat(new { Center = inf.Center.Add(y: -extraWallDepth), Rotated = inf.Perpendicular.Rotate(inf.AxisStart, inf.AxisEnd, -90).Add(y: -extraWallDepth) })
                     .ToArray())
                 .ToArray();
 
