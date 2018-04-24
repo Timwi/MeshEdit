@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MeshEdit</RootNamespace>
     <AssemblyName>MeshEdit</AssemblyName>
-    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
@@ -70,6 +70,7 @@
     <Compile Include="Tools\ArrangeInCircle.cs" />
     <Compile Include="Tools\KtaneBattleshipComponent.cs" />
     <Compile Include="Tools\KtaneTheBulbRotation.cs" />
+    <Compile Include="Tools\RecalculateTextures.cs" />
     <Compile Include="Tools\RoundCoordinates.cs" />
     <Compile Include="Tools\SortSelection.cs" />
     <Compile Include="Tools\RecalculateNormals.cs" />
