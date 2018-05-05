@@ -574,56 +574,81 @@ namespace MeshEdit
                                 break;
 
                             case "Oemplus":
-                                if (Program.Settings.SelectedFaces.Count != 2)
+                                if (Program.Settings.SelectedFaces.Count < 2)
                                 {
-                                    DlgMessage.Show("Need exactly two faces for merge.", "Merge faces", DlgType.Info);
+                                    DlgMessage.Show("Need at least two faces for merge.", "Merge faces", DlgType.Info);
                                     break;
                                 }
 
-                                var face1 = Program.Settings.SelectedFaces[0];
-                                var face2 = Program.Settings.SelectedFaces[1];
-                                var commonLocs = face1.Locations.Intersect(face2.Locations).ToArray();
-                                if (commonLocs.Length < 2)
+                                var removedFaces = new List<Face>();
+                                var addedFaces = new List<Face>();
+                                while (true)
                                 {
-                                    DlgMessage.Show("The selected faces do not have more than one vertex in common.", "Merge faces", DlgType.Info);
-                                    break;
-                                }
-                                var newVertices = new List<VertexInfo>();
-                                var curFace = face1;
-                                var startVix = face1.Vertices.IndexOf(v => !commonLocs.Contains(v.Location));
-                                Ut.Assert(startVix != -1);
-                                var vix = startVix;
-                                do
-                                {
-                                    var loc = curFace.Vertices[vix].Location;
-                                    if (commonLocs.Contains(loc))
+                                    var pair = Program.Settings.SelectedFaces.UniquePairs().FirstOrDefault(tup => tup.Item1.Locations.Intersect(tup.Item2.Locations).Skip(1).Any());
+                                    if (pair == null)
+                                        break;
+
+                                    var face1 = pair.Item1;
+                                    var face2 = pair.Item2;
+                                    var commonLocs = face1.Locations.Intersect(face2.Locations).ToArray();
+                                    if (commonLocs.Length < 2)
                                     {
-                                        vix = face1.Locations.IndexOf(loc);
-                                        var vix2 = face2.Locations.IndexOf(loc);
-                                        Ut.Assert(vix != -1);
-                                        Ut.Assert(vix2 != -1);
-
-                                        // Generate the averaged vertex
-                                        newVertices.Add(new VertexInfo(
-                                            loc,
-                                            (face1.Vertices[vix].Texture + face2.Vertices[vix2].Texture) / 2,
-                                            (face1.Vertices[vix].Normal + face2.Vertices[vix2].Normal) / 2));
-
-                                        // Switch faces
-                                        if (curFace == face1)
+                                        DlgMessage.Show("The selected faces do not have more than one vertex in common.", "Merge faces", DlgType.Info);
+                                        break;
+                                    }
+                                    var newVertices = new List<VertexInfo>();
+                                    var curFace = face1;
+                                    var startVix = face1.Vertices.IndexOf(v => !commonLocs.Contains(v.Location));
+                                    Ut.Assert(startVix != -1);
+                                    var vix = startVix;
+                                    do
+                                    {
+                                        var loc = curFace.Vertices[vix].Location;
+                                        if (commonLocs.Contains(loc))
                                         {
-                                            curFace = face2;
-                                            vix = vix2;
+                                            vix = face1.Locations.IndexOf(loc);
+                                            var vix2 = face2.Locations.IndexOf(loc);
+                                            Ut.Assert(vix != -1);
+                                            Ut.Assert(vix2 != -1);
+
+                                            // Generate the averaged vertex
+                                            newVertices.Add(new VertexInfo(
+                                                loc,
+                                                (face1.Vertices[vix].Texture + face2.Vertices[vix2].Texture) / 2,
+                                                (face1.Vertices[vix].Normal + face2.Vertices[vix2].Normal) / 2));
+
+                                            // Switch faces
+                                            if (curFace == face1)
+                                            {
+                                                curFace = face2;
+                                                vix = vix2;
+                                            }
+                                            else
+                                                curFace = face1;
                                         }
                                         else
-                                            curFace = face1;
+                                            newVertices.Add(curFace.Vertices[vix]);
+                                        vix = (vix + 1) % curFace.Vertices.Length;
                                     }
+                                    while (curFace != face1 || vix != startVix);
+
+                                    var ix = addedFaces.IndexOf(face1);
+                                    if (ix == -1)
+                                        removedFaces.Add(face1);
                                     else
-                                        newVertices.Add(curFace.Vertices[vix]);
-                                    vix = (vix + 1) % curFace.Vertices.Length;
+                                        addedFaces.RemoveAt(ix);
+                                    ix = addedFaces.IndexOf(face2);
+                                    if (ix == -1)
+                                        removedFaces.Add(face2);
+                                    else
+                                        addedFaces.RemoveAt(ix);
+                                    var newFace = new Face(newVertices.ToArray(), face1.Hidden && face2.Hidden);
+                                    addedFaces.Add(newFace);
+                                    Program.Settings.SelectedFaces.Remove(face1);
+                                    Program.Settings.SelectedFaces.Remove(face2);
+                                    Program.Settings.SelectedFaces.Add(newFace);
                                 }
-                                while (curFace != face1 || vix != startVix);
-                                Program.Settings.Execute(new AddRemoveFaces(new[] { face1, face2 }, new[] { new Face(newVertices.ToArray(), face1.Hidden && face2.Hidden) }));
+                                Program.Settings.Execute(new AddRemoveFaces(removedFaces.ToArray(), addedFaces.ToArray()));
                                 break;
 
                             default:
