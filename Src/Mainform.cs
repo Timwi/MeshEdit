@@ -1050,20 +1050,25 @@ namespace MeshEdit
                         var pt = trP(vertex).ToPointF();
                         e.Graphics.DrawEllipse(new Pen(Color.Navy, 2f), new RectangleF(pt - tm(_selectionSize, .5f), _selectionSize));
                         e.Graphics.DrawString((i + 1).ToString(), font, Brushes.Navy, pt + new SizeF(0, -_selectionSize.Height / 2), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Far });
-                        e.Graphics.DrawString($"{vertex}", font, Brushes.Black, pt, new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                        var textY = _selectionSize.Height / 2;
+                        e.Graphics.DrawString($"{vertex}", font, Brushes.Black, pt + new SizeF(0, textY), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
 
                         if (Program.Settings.ShowNormals)
                         {
-                            var j = 0;
                             foreach (var nrml in Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Location == vertex && v.Normal != null).Select(v => v.Normal.Value).Distinct())
-                                e.Graphics.DrawString($"({nrml.X:R}, {nrml.Y:R}, {nrml.Z:R})", font, Brushes.CadetBlue, pt + new SizeF(0, 15 * (++j)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                            {
+                                textY += 15;
+                                e.Graphics.DrawString($"({nrml.X:R}, {nrml.Y:R}, {nrml.Z:R})", font, Brushes.CadetBlue, pt + new SizeF(0, textY), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                            }
                         }
 
                         if (Program.Settings.ShowTextures)
                         {
-                            var j = 0;
                             foreach (var tx in Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Location == vertex && v.Texture != null).Select(v => v.Texture.Value).Distinct())
-                                e.Graphics.DrawString($"({tx.X:R}, {tx.Y:R})", font, Brushes.CadetBlue, pt + new SizeF(0, 15 * (++j)), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                            {
+                                textY += 15;
+                                e.Graphics.DrawString($"({tx.X:R}, {tx.Y:R})", font, Brushes.ForestGreen, pt + new SizeF(0, textY), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                            }
                         }
                     }
 

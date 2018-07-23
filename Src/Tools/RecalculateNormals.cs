@@ -13,9 +13,13 @@ namespace MeshEdit
                 "Average")]
             bool average)
         {
-            var a = Program.Settings.Faces
-                .SelectMany(f => f.Vertices.Select((v, i) => new { Face = f, Vertex = v, Index = i }))
-                .Where(inf => Program.Settings.Faces.Where(f => f.Locations.Contains(inf.Vertex.Location)).All(f => !f.Hidden) && (Program.Settings.SelectedVertices.Count == 0 || Program.Settings.SelectedVertices.Contains(inf.Vertex.Location)))
+            var a = (
+                Program.Settings.IsFaceSelected && Program.Settings.SelectedFaces.Count > 0
+                    ? Program.Settings.SelectedFaces.SelectMany(f => f.Vertices.Select((v, i) => new { Face = f, Vertex = v, Index = i }))
+                    : !Program.Settings.IsFaceSelected && Program.Settings.SelectedVertices.Count > 0
+                        ? Program.Settings.Faces.SelectMany(f => f.Vertices.Select((v, i) => new { Face = f, Vertex = v, Index = i })).Where(inf => !inf.Face.Hidden && Program.Settings.SelectedVertices.Contains(inf.Vertex.Location))
+                        : Program.Settings.Faces.SelectMany(f => f.Vertices.Select((v, i) => new { Face = f, Vertex = v, Index = i })).Where(inf => Program.Settings.Faces.Where(f => f.Locations.Contains(inf.Vertex.Location)).All(f => !f.Hidden) && (Program.Settings.SelectedVertices.Count == 0 || Program.Settings.SelectedVertices.Contains(inf.Vertex.Location)))
+                )
                 .Select(inf => Tuple.Create(inf.Vertex, inf.Vertex.Normal,
                     ((inf.Face.Vertices[(inf.Index + 1) % inf.Face.Vertices.Length].Location - inf.Vertex.Location) *
                     (inf.Face.Vertices[(inf.Index + inf.Face.Vertices.Length - 1) % inf.Face.Vertices.Length].Location - inf.Vertex.Location)).Normalize()));
@@ -34,7 +38,7 @@ namespace MeshEdit
 
     sealed class RecalculateNormalsUndo : UndoItem
     {
-        Tuple<VertexInfo, Pt?, Pt>[] _data;
+        readonly Tuple<VertexInfo, Pt?, Pt>[] _data;
 
         public RecalculateNormalsUndo(Tuple<VertexInfo, Pt?, Pt>[] data) { _data = data; }
         private RecalculateNormalsUndo() { } // Classify
