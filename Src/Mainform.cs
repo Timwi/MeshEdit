@@ -74,11 +74,11 @@ namespace MeshEdit
             foreach (var line in File.ReadAllLines(Program.Settings.Filename))
             {
                 Match m;
-                if ((m = Regex.Match(line, @"^v (-?\d*\.?\d+(?:[eE]-?\d+)?) (-?\d*\.?\d+(?:[eE]-?\d+)?) (-?\d*\.?\d+(?:[eE]-?\d+)?)$")).Success)
+                if ((m = Regex.Match(line, @"^v (-?\d*\.?\d+(?:[eE][-+]?\d+)?) (-?\d*\.?\d+(?:[eE][-+]?\d+)?) (-?\d*\.?\d+(?:[eE][-+]?\d+)?)$")).Success)
                     vertices.Add(new Pt(double.Parse(m.Groups[1].Value), double.Parse(m.Groups[2].Value), double.Parse(m.Groups[3].Value)));
-                else if ((m = Regex.Match(line, @"^vt (-?\d*\.?\d+(?:[eE]-?\d+)?) (-?\d*\.?\d+(?:[eE]-?\d+)?)$")).Success)
+                else if ((m = Regex.Match(line, @"^vt (-?\d*\.?\d+(?:[eE][-+]?\d+)?) (-?\d*\.?\d+(?:[eE][-+]?\d+)?)$")).Success)
                     textures.Add(new PointD(double.Parse(m.Groups[1].Value), double.Parse(m.Groups[2].Value)));
-                else if ((m = Regex.Match(line, @"^vn (-?\d*\.?\d+(?:[eE]-?\d+)?) (-?\d*\.?\d+(?:[eE]-?\d+)?) (-?\d*\.?\d+(?:[eE]-?\d+)?)$")).Success)
+                else if ((m = Regex.Match(line, @"^vn (-?\d*\.?\d+(?:[eE][-+]?\d+)?) (-?\d*\.?\d+(?:[eE][-+]?\d+)?) (-?\d*\.?\d+(?:[eE][-+]?\d+)?)$")).Success)
                     normals.Add(new Pt(double.Parse(m.Groups[1].Value), double.Parse(m.Groups[2].Value), double.Parse(m.Groups[3].Value)));
                 else if (line.StartsWith("v"))
                     System.Diagnostics.Debugger.Break();
@@ -89,7 +89,7 @@ namespace MeshEdit
                             var ixs = s.Split(new[] { '/' });
                             var vix = int.Parse(ixs[0]) - 1;
                             var tix = ixs.Length > 1 && ixs[1].Length > 0 ? int.Parse(ixs[1]) - 1 : -1;
-                            var nix = ixs.Length > 2 ? int.Parse(ixs[2]) - 1 : -1;
+                            var nix = ixs.Length > 2 && ixs[2].Length > 0 ? int.Parse(ixs[2]) - 1 : -1;
                             return Tuple.Create(vix, tix, nix);
                         }).ToArray());
                 else if (line.StartsWith("#h "))
@@ -484,17 +484,17 @@ namespace MeshEdit
                 case "D7":
                 case "D8":
                 case "D9":
-                    {
-                        var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
-                        var faces = rs as Face[];
-                        var vertices = rs as Pt[];
-                        if (faces != null)
-                            Program.Settings.SelectFaces(faces);
-                        else if (vertices != null)
-                            Program.Settings.SelectVertices(vertices);
-                        anyChanges = false;
-                        break;
-                    }
+                {
+                    var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
+                    var faces = rs as Face[];
+                    var vertices = rs as Pt[];
+                    if (faces != null)
+                        Program.Settings.SelectFaces(faces);
+                    else if (vertices != null)
+                        Program.Settings.SelectVertices(vertices);
+                    anyChanges = false;
+                    break;
+                }
 
                 case "Shift+D0":
                 case "Shift+D1":
@@ -506,17 +506,17 @@ namespace MeshEdit
                 case "Shift+D7":
                 case "Shift+D8":
                 case "Shift+D9":
-                    {
-                        var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
-                        var faces = rs as Face[];
-                        var vertices = rs as Pt[];
-                        if (faces != null)
-                            Program.Settings.SelectFaces(faces.Union(Program.Settings.IsFaceSelected ? Program.Settings.SelectedFaces : Enumerable.Empty<Face>()));
-                        else if (vertices != null)
-                            Program.Settings.SelectVertices(vertices.Union(Program.Settings.IsFaceSelected ? Enumerable.Empty<Pt>() : Program.Settings.SelectedVertices));
-                        anyChanges = false;
-                        break;
-                    }
+                {
+                    var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
+                    var faces = rs as Face[];
+                    var vertices = rs as Pt[];
+                    if (faces != null)
+                        Program.Settings.SelectFaces(faces.Union(Program.Settings.IsFaceSelected ? Program.Settings.SelectedFaces : Enumerable.Empty<Face>()));
+                    else if (vertices != null)
+                        Program.Settings.SelectVertices(vertices.Union(Program.Settings.IsFaceSelected ? Enumerable.Empty<Pt>() : Program.Settings.SelectedVertices));
+                    anyChanges = false;
+                    break;
+                }
 
                 case "Ctrl+D0":
                 case "Ctrl+D1":
@@ -811,12 +811,12 @@ namespace MeshEdit
                                 break;
 
                             case "N":
-                                {
-                                    var vertexInfos = Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Normal != null && Program.Settings.SelectedVertices.Contains(v.Location)).ToArray();
-                                    Clipboard.SetText(vertexInfos.Select(v => v.Normal.Value).Select(n => $"{n.X:R},{n.Y:R},{n.Z:R}").JoinString(Environment.NewLine));
-                                    anyChanges = false;
-                                }
-                                break;
+                            {
+                                var vertexInfos = Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Normal != null && Program.Settings.SelectedVertices.Contains(v.Location)).ToArray();
+                                Clipboard.SetText(vertexInfos.Select(v => v.Normal.Value).Select(n => $"{n.X:R},{n.Y:R},{n.Z:R}").JoinString(Environment.NewLine));
+                                anyChanges = false;
+                            }
+                            break;
                             case "Shift+N":
                                 if (!(clip = Clipboard.GetText()).Contains('\n') && (strSplit = clip.Split(',')).Length == 3 && ExactConvert.Try(strSplit[0], out result1) && ExactConvert.Try(strSplit[1], out result2) && ExactConvert.Try(strSplit[2], out result3))
                                     replaceNormals(result1, result2, result3);
@@ -847,37 +847,37 @@ namespace MeshEdit
                                 break;
 
                             case "Oemplus":
+                            {
+                                if (Program.Settings.SelectedVertices.Count != 2)
                                 {
-                                    if (Program.Settings.SelectedVertices.Count != 2)
-                                    {
-                                        DlgMessage.ShowInfo("Need exactly two selected vertices to create a new vertex between them.");
-                                        break;
-                                    }
-
-                                    var sel1 = Program.Settings.SelectedVertices[0];
-                                    var sel2 = Program.Settings.SelectedVertices[1];
-                                    var affectedFaces = Program.Settings.Faces
-                                        .Select(f => Tuple.Create(f, Enumerable.Range(0, f.Vertices.Length)
-                                            .Where(i =>
-                                                (f.Vertices[i].Location == sel1 && f.Vertices[(i + 1) % f.Vertices.Length].Location == sel2) ||
-                                                (f.Vertices[i].Location == sel2 && f.Vertices[(i + 1) % f.Vertices.Length].Location == sel1))
-                                            .ToArray()))
-                                        .Where(tup => tup.Item2.Length > 0)
-                                        .ToArray();
-                                    Program.Settings.Execute(new CreateVertex(affectedFaces));
+                                    DlgMessage.ShowInfo("Need exactly two selected vertices to create a new vertex between them.");
                                     break;
                                 }
+
+                                var sel1 = Program.Settings.SelectedVertices[0];
+                                var sel2 = Program.Settings.SelectedVertices[1];
+                                var affectedFaces = Program.Settings.Faces
+                                    .Select(f => Tuple.Create(f, Enumerable.Range(0, f.Vertices.Length)
+                                        .Where(i =>
+                                            (f.Vertices[i].Location == sel1 && f.Vertices[(i + 1) % f.Vertices.Length].Location == sel2) ||
+                                            (f.Vertices[i].Location == sel2 && f.Vertices[(i + 1) % f.Vertices.Length].Location == sel1))
+                                        .ToArray()))
+                                    .Where(tup => tup.Item2.Length > 0)
+                                    .ToArray();
+                                Program.Settings.Execute(new CreateVertex(affectedFaces));
+                                break;
+                            }
 
                             case "Shift+Oemplus":
+                            {
+                                if (Program.Settings.SelectedVertices.Count < 3)
                                 {
-                                    if (Program.Settings.SelectedVertices.Count < 3)
-                                    {
-                                        DlgMessage.ShowInfo("Need at least three vertices to create a face.");
-                                        break;
-                                    }
-                                    Program.Settings.Execute(new AddRemoveFaces(null, new[] { new Face(Program.Settings.SelectedVertices.Select(v => new VertexInfo(v, new PointD(0, 0), new Pt(0, 1, 0))).ToArray()) }));
+                                    DlgMessage.ShowInfo("Need at least three vertices to create a face.");
                                     break;
                                 }
+                                Program.Settings.Execute(new AddRemoveFaces(null, new[] { new Face(Program.Settings.SelectedVertices.Select(v => new VertexInfo(v, new PointD(0, 0), new Pt(0, 1, 0))).ToArray()) }));
+                                break;
+                            }
 
                             case "Delete":
                                 if (Program.Settings.SelectedVertices.Count > 0)
@@ -896,40 +896,40 @@ namespace MeshEdit
                                 break;
 
                             case "OemMinus":
+                            {
+                                if (Program.Settings.SelectedVertices.Count != 2)
                                 {
-                                    if (Program.Settings.SelectedVertices.Count != 2)
-                                    {
-                                        DlgMessage.ShowInfo("Need exactly two selected vertices.");
-                                        break;
-                                    }
-
-                                    var sel1 = Program.Settings.SelectedVertices[0];
-                                    var sel2 = Program.Settings.SelectedVertices[1];
-                                    var affectedFaces = Program.Settings.Faces
-                                        .Select(f => new { Face = f, Index1 = f.Vertices.IndexOf(v => v.Location == sel1), Index2 = f.Vertices.IndexOf(v => v.Location == sel2) })
-                                        .Where(inf => inf.Index1 != -1 && inf.Index2 != -1)
-                                        .Take(2)
-                                        .ToArray();
-                                    if (affectedFaces.Length < 1)
-                                        DlgMessage.ShowInfo("The selected vertices do not have a face in common.");
-                                    else if (affectedFaces.Length > 1)
-                                        DlgMessage.ShowInfo("The selected vertices have more than one face in common.");
-                                    else
-                                    {
-                                        var affectedFace = affectedFaces[0];
-                                        var index1 = Math.Min(affectedFace.Index1, affectedFace.Index2);
-                                        var index2 = Math.Max(affectedFace.Index1, affectedFace.Index2);
-                                        if (index2 == index1 + 1 || (index1 == 0 && index2 == affectedFace.Face.Vertices.Length - 1))
-                                            DlgMessage.ShowInfo("The selected vertices are adjacent.");
-                                        else
-                                        {
-                                            var newFace1 = new Face(affectedFace.Face.Vertices.Subarray(index1, index2 - index1 + 1), affectedFace.Face.Hidden);
-                                            var newFace2 = new Face(affectedFace.Face.Vertices.Subarray(index2).Concat(affectedFace.Face.Vertices.Subarray(0, index1 + 1)).ToArray(), affectedFace.Face.Hidden);
-                                            Program.Settings.Execute(new AddRemoveFaces(new[] { affectedFace.Face }, new[] { newFace1, newFace2 }));
-                                        }
-                                    }
+                                    DlgMessage.ShowInfo("Need exactly two selected vertices.");
                                     break;
                                 }
+
+                                var sel1 = Program.Settings.SelectedVertices[0];
+                                var sel2 = Program.Settings.SelectedVertices[1];
+                                var affectedFaces = Program.Settings.Faces
+                                    .Select(f => new { Face = f, Index1 = f.Vertices.IndexOf(v => v.Location == sel1), Index2 = f.Vertices.IndexOf(v => v.Location == sel2) })
+                                    .Where(inf => inf.Index1 != -1 && inf.Index2 != -1)
+                                    .Take(2)
+                                    .ToArray();
+                                if (affectedFaces.Length < 1)
+                                    DlgMessage.ShowInfo("The selected vertices do not have a face in common.");
+                                else if (affectedFaces.Length > 1)
+                                    DlgMessage.ShowInfo("The selected vertices have more than one face in common.");
+                                else
+                                {
+                                    var affectedFace = affectedFaces[0];
+                                    var index1 = Math.Min(affectedFace.Index1, affectedFace.Index2);
+                                    var index2 = Math.Max(affectedFace.Index1, affectedFace.Index2);
+                                    if (index2 == index1 + 1 || (index1 == 0 && index2 == affectedFace.Face.Vertices.Length - 1))
+                                        DlgMessage.ShowInfo("The selected vertices are adjacent.");
+                                    else
+                                    {
+                                        var newFace1 = new Face(affectedFace.Face.Vertices.Subarray(index1, index2 - index1 + 1), affectedFace.Face.Hidden);
+                                        var newFace2 = new Face(affectedFace.Face.Vertices.Subarray(index2).Concat(affectedFace.Face.Vertices.Subarray(0, index1 + 1)).ToArray(), affectedFace.Face.Hidden);
+                                        Program.Settings.Execute(new AddRemoveFaces(new[] { affectedFace.Face }, new[] { newFace1, newFace2 }));
+                                    }
+                                }
+                                break;
+                            }
 
                             default:
                                 anyChanges = false;
