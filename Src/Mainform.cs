@@ -694,6 +694,7 @@ namespace MeshEdit
                         double result1, result2, result3;
                         string[] strSplit;
                         string clip;
+                        bool x = false, y = false;
                         switch (combo)
                         {
                             case "Ctrl+C":
@@ -777,6 +778,13 @@ namespace MeshEdit
                             case "Shift+X": if (ExactConvert.Try(Clipboard.GetText(), out result1)) { replaceVertices(x: result1); } break;
                             case "Shift+Y": if (ExactConvert.Try(Clipboard.GetText(), out result1)) { replaceVertices(y: result1); } break;
                             case "Shift+Z": if (ExactConvert.Try(Clipboard.GetText(), out result1)) { replaceVertices(z: result1); } break;
+                            case "Ctrl+Shift+X": x = true; goto case "Ctrl+Shift+Z";
+                            case "Ctrl+Shift+Y": y = true; goto case "Ctrl+Shift+Z";
+                            case "Ctrl+Shift+Z":
+                                var input = InputBox.GetLine("Coordinate?", Program.Settings.SelectedVertices.DefaultIfEmpty().Average(p => x ? p.X : y ? p.Y : p.Z).ToString(), $"Set {(x ? "X" : y ? "Y" : "Z")} coordinate directly");
+                                if (input != null && ExactConvert.Try(input, out result1))
+                                    replaceVertices(x ? result1 : (double?) null, y ? result1 : (double?) null, !x && !y ? result1 : (double?) null);
+                                break;
 
                             case "P":
                                 Clipboard.SetText(Program.Settings.SelectedVertices.Select(t => $"{t.X:R},{t.Y:R},{t.Z:R}").JoinString(Environment.NewLine));
