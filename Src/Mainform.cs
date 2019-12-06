@@ -737,7 +737,7 @@ namespace MeshEdit
                                 break;
 
                             case "Shift+F":
-                                Program.Settings.SelectFaces(Program.Settings.Faces.Where(f => f.Vertices.Any(v => Program.Settings.SelectedVertices.Contains(v.Location))));
+                                Program.Settings.SelectFaces(Program.Settings.Faces.Where(f => !f.Hidden && f.Vertices.Any(v => Program.Settings.SelectedVertices.Contains(v.Location))));
                                 break;
 
                             case "Left":
