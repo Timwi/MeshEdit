@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using RT.Serialization;
 using RT.Util.Geometry;
-using RT.Util.Serialization;
 
 namespace MeshEdit
 {

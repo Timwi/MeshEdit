@@ -7,13 +7,13 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using RT.Json;
+using RT.Serialization;
 using RT.Util;
 using RT.Util.Dialogs;
 using RT.Util.ExtensionMethods;
 using RT.Util.Forms;
 using RT.Util.Geometry;
-using RT.Util.Json;
-using RT.Util.Serialization;
 
 namespace MeshEdit
 {
@@ -100,10 +100,9 @@ namespace MeshEdit
 
             Program.Settings.SelectVertex(null);
             Program.Settings.Faces = faces.Select(f => new Face(f.Select(ixs => new VertexInfo(vertices[ixs.Item1], ixs.Item2 == -1 ? (PointD?) null : textures[ixs.Item2], ixs.Item3 == -1 ? (Pt?) null : normals[ixs.Item3])).ToArray())).ToList();
-            int ix;
             if (hiddenFacesStr != null)
                 foreach (var segment in hiddenFacesStr.Split(','))
-                    if (int.TryParse(segment, out ix) && ix >= 0 && ix < Program.Settings.Faces.Count)
+                    if (int.TryParse(segment, out var ix) && ix >= 0 && ix < Program.Settings.Faces.Count)
                         Program.Settings.Faces[ix].Hidden = true;
             recalculateBounds();
         }
@@ -161,16 +160,16 @@ namespace MeshEdit
             {
                 var potentialFaces = Program.Settings.Faces.Where(f => new PolygonD(f.Vertices.Select(v => trP(v.Location))).ContainsPoint(mousePos)).ToArray();
 
-                if (_highlightVertex == null && potentialFaces.Length > 0 && !_aboutToZoom && !Ut.Ctrl)
+                if (_highlightVertex == null && potentialFaces.Length > 0 && !_aboutToZoom && !UtWin.Ctrl)
                 {
                     var potentialSelectedFace = potentialFaces.FirstOrDefault(Program.Settings.SelectedFaces.Contains);
-                    if (Ut.Shift && potentialSelectedFace != null)
+                    if (UtWin.Shift && potentialSelectedFace != null)
                     {
                         // Deselect a face
                         Program.Settings.SelectedFaces.Remove(potentialSelectedFace);
                         updateUi();
                     }
-                    else if (Ut.Shift)
+                    else if (UtWin.Shift)
                     {
                         // Add a face to the selection
                         Program.Settings.SelectedFaces.Add(potentialFaces.First(pf => !Program.Settings.SelectedFaces.Contains(pf)));
@@ -181,9 +180,9 @@ namespace MeshEdit
                     else
                         Program.Settings.SelectFace(potentialFaces[0]);
                 }
-                else if (_highlightVertex == null || _aboutToZoom || Ut.Ctrl)
+                else if (_highlightVertex == null || _aboutToZoom || UtWin.Ctrl)
                 {
-                    if (!Ut.Shift && !_aboutToZoom)
+                    if (!UtWin.Shift && !_aboutToZoom)
                         Program.Settings.SelectVertex(null);
                     _draggingSelectionRect = new RectangleD(mousePos.X, mousePos.Y, 0, 0);
                 }
@@ -192,7 +191,7 @@ namespace MeshEdit
                     if (!Program.Settings.IsFaceSelected && Program.Settings.SelectedVertices.Contains(_highlightVertex.Value))
                     {
                         // Shift+Click on selected vertex: unselect it and don’t do dragging
-                        if (Ut.Shift)
+                        if (UtWin.Shift)
                         {
                             Program.Settings.SelectedVertices.Remove(_highlightVertex.Value);
                             return;
@@ -201,7 +200,7 @@ namespace MeshEdit
                     else
                     {
                         // Click or Shift+Click on non-selected vertex
-                        if (Ut.Shift && !Program.Settings.IsFaceSelected)
+                        if (UtWin.Shift && !Program.Settings.IsFaceSelected)
                             Program.Settings.SelectedVertices.Add(_highlightVertex.Value);
                         else
                             Program.Settings.SelectVertex(_highlightVertex);
@@ -269,8 +268,8 @@ namespace MeshEdit
                 else
                 {
                     var n = _draggingSelectionRect.Value.Normalize();
-                    var faces = Ut.Ctrl ? Program.Settings.Faces : Program.Settings.Faces.Where(f => !f.Hidden);
-                    if (!Ut.Shift)
+                    var faces = UtWin.Ctrl ? Program.Settings.Faces : Program.Settings.Faces.Where(f => !f.Hidden);
+                    if (!UtWin.Shift)
                         Program.Settings.SelectedVertices = new List<Pt>();
                     Program.Settings.SelectedVertices = Program.Settings.SelectedVertices.Union(
                         faces.SelectMany(f => f.Locations).Distinct().Where(v => trP(v).Apply(p => n.Contains(p.X, p.Y)))).ToList();
@@ -314,17 +313,11 @@ namespace MeshEdit
             Program.Settings.Save(onFailure: SettingsOnFailure.ShowRetryWithCancel);
         }
 
-        private string encode(int vix, int? tix, int? nix)
-        {
-            if (tix == null && nix == null)
-                return (vix + 1).ToString();
-            else if (tix == null)
-                return $"{vix + 1}//{nix + 1}";
-            else if (nix == null)
-                return $"{vix + 1}/{tix + 1}";
-            else
-                return $"{vix + 1}/{tix + 1}/{nix + 1}";
-        }
+        private string encode(int vix, int? tix, int? nix) =>
+            tix == null && nix == null ? (vix + 1).ToString() :
+            tix == null ? $"{vix + 1}//{nix + 1}" :
+            nix == null ? $"{vix + 1}/{tix + 1}" :
+            $"{vix + 1}/{tix + 1}/{nix + 1}";
 
         private ToolInfo[] _tools;
 
@@ -486,11 +479,9 @@ namespace MeshEdit
                 case "D9":
                 {
                     var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
-                    var faces = rs as Face[];
-                    var vertices = rs as Pt[];
-                    if (faces != null)
+                    if (rs is Face[] faces)
                         Program.Settings.SelectFaces(faces);
-                    else if (vertices != null)
+                    else if (rs is Pt[] vertices)
                         Program.Settings.SelectVertices(vertices);
                     anyChanges = false;
                     break;
@@ -508,11 +499,9 @@ namespace MeshEdit
                 case "Shift+D9":
                 {
                     var rs = Program.Settings.RememberedSelections[combo.Last() - '0'];
-                    var faces = rs as Face[];
-                    var vertices = rs as Pt[];
-                    if (faces != null)
+                    if (rs is Face[] faces)
                         Program.Settings.SelectFaces(faces.Union(Program.Settings.IsFaceSelected ? Program.Settings.SelectedFaces : Enumerable.Empty<Face>()));
-                    else if (vertices != null)
+                    else if (rs is Pt[] vertices)
                         Program.Settings.SelectVertices(vertices.Union(Program.Settings.IsFaceSelected ? Enumerable.Empty<Pt>() : Program.Settings.SelectedVertices));
                     anyChanges = false;
                     break;
@@ -584,9 +573,10 @@ namespace MeshEdit
                                 var addedFaces = new List<Face>();
                                 while (true)
                                 {
-                                    var pair = Program.Settings.SelectedFaces.UniquePairs().FirstOrDefault(tup => tup.Item1.Locations.Intersect(tup.Item2.Locations).Skip(1).Any());
-                                    if (pair == null)
+                                    var pairNullable = Program.Settings.SelectedFaces.UniquePairs().FirstOrNull(tup => tup.Item1.Locations.Intersect(tup.Item2.Locations).Skip(1).Any());
+                                    if (pairNullable == null)
                                         break;
+                                    var pair = pairNullable.Value;
 
                                     var face1 = pair.Item1;
                                     var face2 = pair.Item2;
@@ -797,11 +787,10 @@ namespace MeshEdit
                                     replaceVertices(result1, result2, result3);
                                 else if ((strSplit = Clipboard.GetText().Trim().Split('\n')).Length == Program.Settings.SelectedVertices.Count && strSplit.All(s => s.Split(',').Length == 3))
                                 {
-                                    var conv = strSplit.Select(s => s.Split(',')).Select(arr =>
-                                    {
-                                        double result;
-                                        return new { X = ExactConvert.Try(arr[0], out result) ? result : (double?) null, Y = ExactConvert.Try(arr[1], out result) ? result : (double?) null, Z = ExactConvert.Try(arr[2], out result) ? result : (double?) null };
-                                    }).ToArray();
+                                    var conv = strSplit
+                                        .Select(s => s.Split(','))
+                                        .Select(arr => new { X = ExactConvert.Try(arr[0], out double result) ? result : (double?) null, Y = ExactConvert.Try(arr[1], out result) ? result : (double?) null, Z = ExactConvert.Try(arr[2], out result) ? result : (double?) null })
+                                        .ToArray();
                                     if (conv.Any(c => c.X == null || c.Y == null || c.Z == null))
                                         break;
                                     Program.Settings.Execute(new MoveVertices(Enumerable.Range(0, strSplit.Length)
@@ -825,11 +814,15 @@ namespace MeshEdit
                                     var vertexInfos = Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Normal != null && Program.Settings.SelectedVertices.Contains(v.Location)).ToArray();
                                     if ((strSplit = Clipboard.GetText().Trim().Split('\n')).Length == vertexInfos.Length && strSplit.All(s => s.Split(',').Length == 3))
                                     {
-                                        var conv = strSplit.Select(s => s.Split(',')).Select(arr =>
-                                        {
-                                            double result;
-                                            return new { X = ExactConvert.Try(arr[0], out result) ? result : (double?) null, Y = ExactConvert.Try(arr[1], out result) ? result : (double?) null, Z = ExactConvert.Try(arr[2], out result) ? result : (double?) null };
-                                        }).ToArray();
+                                        var conv = strSplit
+                                            .Select(s => s.Split(','))
+                                            .Select(arr => new
+                                            {
+                                                X = ExactConvert.Try(arr[0], out double result) ? result : (double?) null,
+                                                Y = ExactConvert.Try(arr[1], out result) ? result : (double?) null,
+                                                Z = ExactConvert.Try(arr[2], out result) ? result : (double?) null
+                                            })
+                                            .ToArray();
                                         if (conv.Any(c => c.X == null || c.Y == null || c.Z == null) || conv.Length != vertexInfos.Length)
                                             break;
                                         Program.Settings.Execute(new MoveVertices(vertexInfos.Select((v, ix) => Tuple.Create(v, v.Location, v.Location, v.Normal, new Pt(conv[ix].X.Value, conv[ix].Y.Value, conv[ix].Z.Value).Nullable())).ToArray()));

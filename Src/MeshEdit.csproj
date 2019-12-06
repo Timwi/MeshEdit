@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MeshEdit</RootNamespace>
     <AssemblyName>MeshEdit</AssemblyName>
-    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
@@ -86,13 +86,33 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\RT.Util\Src\RT.Util.csproj">
-      <Project>{8d0fe79c-ad8d-475c-9e6f-9cae85365b5d}</Project>
-      <Name>RT.Util</Name>
-    </ProjectReference>
+    <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Properties\" />
+    <ProjectReference Include="..\..\RT.Util\RT.Json\RT.Json.csproj">
+      <Project>{049f6730-1016-4b38-9c48-8f75040f052f}</Project>
+      <Name>RT.Json</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\RT.Util\RT.Serialization.Json\RT.Serialization.Json.csproj">
+      <Project>{34b53e31-17c4-422b-a2ea-1a1c386849a8}</Project>
+      <Name>RT.Serialization.Json</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\RT.Util\RT.Serialization\RT.Serialization.csproj">
+      <Project>{3784d667-abfc-4a59-b5fd-bfcce8156995}</Project>
+      <Name>RT.Serialization</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\RT.Util\RT.Util.Core\RT.Util.Core.csproj">
+      <Project>{bdcba4d6-84d9-45dd-9443-c19d86c132eb}</Project>
+      <Name>RT.Util.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\RT.Util\RT.Util.Legacy\RT.Util.Legacy.csproj">
+      <Project>{79d31972-b22d-4ab0-a875-e1632b29c297}</Project>
+      <Name>RT.Util.Legacy</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\RT.Util\RT.Util\RT.Util.csproj">
+      <Project>{7009ac1a-7aaf-4be7-ab52-aecbe3da53db}</Project>
+      <Name>RT.Util</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

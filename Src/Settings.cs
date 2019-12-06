@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using RT.Serialization;
 using RT.Util;
 using RT.Util.Forms;
 using RT.Util.Geometry;
-using RT.Util.Serialization;
 
 namespace MeshEdit
 {
