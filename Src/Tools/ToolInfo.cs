@@ -62,6 +62,24 @@ namespace MeshEdit
         }
     }
 
+    sealed class ToolEnumAttribute : ToolParamAttribute
+    {
+        public ToolEnumAttribute(string prompt, Type enumType, params string[] readableNames) : base(prompt)
+        {
+            ReadableNames = readableNames;
+            EnumType = enumType;
+        }
+        public Type EnumType { get; private set; }
+        public string[] ReadableNames { get; private set; }
+
+        public override bool AskForValue(string parameterName, ref object value)
+        {
+            var result = DlgMessage.Show(Prompt, parameterName, DlgType.Question, ReadableNames.Concat("Cancel").ToArray());
+            value = result == ReadableNames.Length ? null : Enum.ToObject(EnumType, result);
+            return value != null;
+        }
+    }
+
     abstract class ToolInputBoxAttribute : ToolParamAttribute
     {
         public ToolInputBoxAttribute(string prompt) : base(prompt) { }

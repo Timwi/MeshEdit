@@ -61,6 +61,9 @@
     <Compile Include="Program.cs" />
     <Compile Include="Pt.cs" />
     <Compile Include="Settings.cs" />
+    <Compile Include="Tools\NormalizeNormals.cs" />
+    <Compile Include="Tools\TriangulateFace.cs" />
+    <Compile Include="Tools\SelectFromY.cs" />
     <Compile Include="Tools\KtaneDoubleOhTexture.cs" />
     <Compile Include="Tools\KtaneDoubleOhArrange.cs" />
     <Compile Include="Tools\GenerateCircle.cs" />
