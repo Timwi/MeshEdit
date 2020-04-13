@@ -10,7 +10,6 @@ using System.Windows.Forms;
 using RT.Json;
 using RT.Serialization;
 using RT.Util;
-using RT.Util.Dialogs;
 using RT.Util.ExtensionMethods;
 using RT.Util.Forms;
 using RT.Util.Geometry;

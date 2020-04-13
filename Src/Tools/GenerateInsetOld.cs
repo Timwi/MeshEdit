@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using RT.Util;
-using RT.Util.Dialogs;
+using RT.Util.Forms;
 using RT.Util.ExtensionMethods;
 
 namespace MeshEdit
