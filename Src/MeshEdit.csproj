@@ -67,7 +67,6 @@
     <Compile Include="Tools\KtaneDoubleOhTexture.cs" />
     <Compile Include="Tools\KtaneDoubleOhArrange.cs" />
     <Compile Include="Tools\GenerateCircle.cs" />
-    <Compile Include="Tools\GenerateInsetOld.cs" />
     <Compile Include="Tools\KtaneWirePlacementComponent.cs" />
     <Compile Include="Tools\KtaneFriendshipButtons.cs" />
     <Compile Include="Tools\ArrangeInCircle.cs" />
