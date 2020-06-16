@@ -42,15 +42,10 @@ namespace MeshEdit
                     .ToArray())
                 .ToArray();
 
-            File.WriteAllText(@"D:\temp\temp.txt", "");
             var faces = Enumerable.Range(0, nPts.Length)
                 .SelectConsecutivePairs(!open, (i1, i2) => Enumerable.Range(0, nPts[0].Length)
                     .SelectConsecutivePairs(false, (j1, j2) => new[] { nPts[i1][j1], nPts[i2][j1], nPts[i2][j2], nPts[i1][j2] }
-                        .Select(inf =>
-                        {
-                            File.AppendAllLines(@"D:\temp\temp.txt", new[] { $"Rotating {pts[i2]} about axis {pts[i1].Add(y: -radius)} -> {pts[i2].Add(y: -radius)} (angle {inf.Angle}) gives {pts[i2].Rotate(pts[i1].Add(y: -radius), pts[i2].Add(y: -radius), inf.Angle)}, normal vector is {pts[i2].Rotate(pts[i1].Add(y: -radius), pts[i2].Add(y: -radius), inf.Angle) - pts[i2].Add(y: -radius)}" });
-                            return new VertexInfo(inf.Rotated, null, pts[i2].Rotate(pts[i1].Add(y: -radius), pts[i2].Add(y: -radius), inf.Angle) - pts[i2].Add(y: -radius));
-                        }).ToArray()))
+                        .Select(inf => new VertexInfo(inf.Rotated, null, pts[i2].Rotate(pts[i1].Add(y: -radius), pts[i2].Add(y: -radius), inf.Angle) - pts[i2].Add(y: -radius))).ToArray()))
                 .SelectMany(x => x);
 
             Program.Settings.Execute(new AddRemoveFaces(null, faces.Select(f => new Face(f, false)).ToArray()));
