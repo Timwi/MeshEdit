@@ -523,7 +523,7 @@ namespace MeshEdit
 
                 case "Tab":
                 case "Shift+Tab":
-                    Program.Settings.SelectFace((Program.Settings.SelectedFaces.Select(Program.Settings.Faces.IndexOf).FirstOrDefault(shift ? Program.Settings.Faces.Count : -1) + (shift ? Program.Settings.Faces.Count - 1 : 1)) % Program.Settings.Faces.Count);
+                    Program.Settings.SelectFace((Program.Settings.SelectedFaces.Select(f => Program.Settings.Faces.IndexOf(f)).FirstOrDefault(shift ? Program.Settings.Faces.Count : -1) + (shift ? Program.Settings.Faces.Count - 1 : 1)) % Program.Settings.Faces.Count);
                     break;
 
                 case "Ctrl+H":
@@ -1044,6 +1044,7 @@ namespace MeshEdit
             // Selected vertices
             if (!Program.Settings.IsFaceSelected)
                 using (var font = new Font("Agency FB", 10f, FontStyle.Regular))
+                using (var fontBold = new Font("Agency FB", 10f, FontStyle.Bold))
                     for (int i = 0; i < Program.Settings.SelectedVertices.Count; i++)
                     {
                         var vertex = Program.Settings.SelectedVertices[i];
@@ -1064,10 +1065,13 @@ namespace MeshEdit
 
                         if (Program.Settings.ShowTextures)
                         {
-                            foreach (var tx in Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Location == vertex && v.Texture != null).Select(v => v.Texture.Value).Distinct())
+                            var textureInfs = Program.Settings.Faces.SelectMany(f => f.Vertices
+                                .Where(v => v.Location == vertex && v.Texture != null)
+                                .Select(v => new { VertexInfo = v, Selected = Program.Settings.SelectedFaces.Contains(f) })).ToArray();
+                            foreach (var gr in textureInfs.GroupBy(v => v.VertexInfo.Texture.Value))
                             {
                                 textY += 15;
-                                e.Graphics.DrawString($"({tx.X:R}, {tx.Y:R})", font, Brushes.ForestGreen, pt + new SizeF(0, textY), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
+                                e.Graphics.DrawString($"({gr.Key.X:R}, {gr.Key.Y:R})", gr.Any(inf => inf.Selected) ? fontBold : font, Brushes.ForestGreen, pt + new SizeF(0, textY), new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Near });
                             }
                         }
                     }
