@@ -39,6 +39,35 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="RT.Json, Version=2.0.1694.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RT.Json.2.0.1694\lib\netstandard2.0\RT.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="RT.PostBuild, Version=2.0.1694.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RT.PostBuild.2.0.1694\lib\netstandard2.0\RT.PostBuild.dll</HintPath>
+    </Reference>
+    <Reference Include="RT.Serialization, Version=2.0.1694.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RT.Serialization.2.0.1694\lib\netstandard2.0\RT.Serialization.dll</HintPath>
+    </Reference>
+    <Reference Include="RT.Serialization.Binary, Version=2.0.1694.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RT.Serialization.Binary.2.0.1694\lib\netstandard2.0\RT.Serialization.Binary.dll</HintPath>
+    </Reference>
+    <Reference Include="RT.Serialization.Json, Version=2.0.1694.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RT.Serialization.Json.2.0.1694\lib\netstandard2.0\RT.Serialization.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="RT.Serialization.Xml, Version=2.0.1694.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RT.Serialization.Xml.2.0.1694\lib\netstandard2.0\RT.Serialization.Xml.dll</HintPath>
+    </Reference>
+    <Reference Include="RT.Util, Version=2.0.1694.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RT.Util.2.0.1694\lib\net472\RT.Util.dll</HintPath>
+    </Reference>
+    <Reference Include="RT.Util.Core, Version=2.0.1694.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RT.Util.Core.2.0.1694\lib\netstandard2.0\RT.Util.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="RT.Util.Legacy, Version=2.0.1694.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RT.Util.Legacy.2.0.1694\lib\netstandard2.0\RT.Util.Legacy.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
@@ -50,6 +79,7 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Face.cs" />
@@ -92,30 +122,7 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\RT.Util\RT.Json\RT.Json.csproj">
-      <Project>{049f6730-1016-4b38-9c48-8f75040f052f}</Project>
-      <Name>RT.Json</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\RT.Util\RT.Serialization.Json\RT.Serialization.Json.csproj">
-      <Project>{34b53e31-17c4-422b-a2ea-1a1c386849a8}</Project>
-      <Name>RT.Serialization.Json</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\RT.Util\RT.Serialization\RT.Serialization.csproj">
-      <Project>{3784d667-abfc-4a59-b5fd-bfcce8156995}</Project>
-      <Name>RT.Serialization</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\RT.Util\RT.Util.Core\RT.Util.Core.csproj">
-      <Project>{bdcba4d6-84d9-45dd-9443-c19d86c132eb}</Project>
-      <Name>RT.Util.Core</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\RT.Util\RT.Util.Legacy\RT.Util.Legacy.csproj">
-      <Project>{79d31972-b22d-4ab0-a875-e1632b29c297}</Project>
-      <Name>RT.Util.Legacy</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\RT.Util\RT.Util\RT.Util.csproj">
-      <Project>{7009ac1a-7aaf-4be7-ab52-aecbe3da53db}</Project>
-      <Name>RT.Util</Name>
-    </ProjectReference>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
