@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows.Forms;
 using RT.Util;
 
@@ -27,6 +29,7 @@ namespace MeshEdit
         [STAThread]
         static void Main()
         {
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             SettingsUtil.LoadSettings(out Settings);
 
             Application.EnableVisualStyles();

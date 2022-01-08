@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -339,6 +340,10 @@ namespace MeshEdit
 
                 case "Ctrl+Z": case "Alt+Back": undo(); break;
                 case "Ctrl+Y": case "Alt+Shift+Back": redo(); break;
+
+                case "Ctrl+A":
+                    Program.Settings.SelectVertices(Program.Settings.Faces.SelectMany(f => f.Vertices).Select(v => v.Location).Distinct());
+                    break;
 
                 case "Ctrl+Shift+N":
                     Program.Settings.ShowNormals = !Program.Settings.ShowNormals;
