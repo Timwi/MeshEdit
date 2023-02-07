@@ -531,14 +531,6 @@ namespace MeshEdit
                     Program.Settings.SelectFace((Program.Settings.SelectedFaces.Select(f => Program.Settings.Faces.IndexOf(f)).FirstOrDefault(shift ? Program.Settings.Faces.Count : -1) + (shift ? Program.Settings.Faces.Count - 1 : 1)) % Program.Settings.Faces.Count);
                     break;
 
-                case "Ctrl+H":
-                    Program.Settings.Execute(new SetHidden(Program.Settings.Faces.ToArray(), true));
-                    break;
-
-                case "Ctrl+Shift+H":
-                    Program.Settings.Execute(new SetHidden(Program.Settings.Faces.ToArray(), false));
-                    break;
-
                 default:
                     if (Program.Settings.IsFaceSelected && Program.Settings.SelectedFaces.Count > 0)
                     {
