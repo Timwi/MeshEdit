@@ -834,6 +834,36 @@ namespace MeshEdit
                                 }
                                 break;
 
+                            case "U":
+                            {
+                                var vertexInfos = Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Texture != null && Program.Settings.SelectedVertices.Contains(v.Location)).ToArray();
+                                Clipboard.SetText(vertexInfos.Select(v => v.Texture.Value).Select(n => $"{n.X:R},{n.Y:R}").JoinString(Environment.NewLine));
+                                anyChanges = false;
+                            }
+                            break;
+                            case "Shift+U":
+                                if (!(clip = Clipboard.GetText()).Contains('\n') && (strSplit = clip.Split(',')).Length == 2 && ExactConvert.Try(strSplit[0], out result1) && ExactConvert.Try(strSplit[1], out result2))
+                                    replaceTextures(result1, result2);
+                                else
+                                {
+                                    var vertexInfos = Program.Settings.Faces.SelectMany(f => f.Vertices).Where(v => v.Texture != null && Program.Settings.SelectedVertices.Contains(v.Location)).ToArray();
+                                    if ((strSplit = Clipboard.GetText().Trim().Split('\n')).Length == vertexInfos.Length && strSplit.All(s => s.Split(',').Length == 2))
+                                    {
+                                        var conv = strSplit
+                                            .Select(s => s.Split(','))
+                                            .Select(arr => new
+                                            {
+                                                X = ExactConvert.Try(arr[0], out double result) ? result : (double?) null,
+                                                Y = ExactConvert.Try(arr[1], out result) ? result : (double?) null
+                                            })
+                                            .ToArray();
+                                        if (conv.Any(c => c.X == null || c.Y == null) || conv.Length != vertexInfos.Length)
+                                            break;
+                                        Program.Settings.Execute(new ModifyTextureCoordinates(vertexInfos.Select((v, ix) => Tuple.Create(v, v.Texture, new PointD(conv[ix].X.Value, conv[ix].Y.Value).Nullable())).ToArray()));
+                                    }
+                                }
+                                break;
+
                             case "Alt+Right": case "Alt+Shift+Right": processArrow(0); break;
                             case "Alt+Down": case "Alt+Shift+Down": processArrow(2); break;
                             case "Alt+Left": case "Alt+Shift+Left": processArrow(4); break;
@@ -1007,6 +1037,14 @@ namespace MeshEdit
             Program.Settings.Execute(new MoveVertices(Program.Settings.Faces.SelectMany(f => f.Vertices)
                 .Where(v => Program.Settings.SelectedVertices.Contains(v.Location))
                 .Select(v => Tuple.Create(v, v.Location, v.Location, v.Normal, new Pt(x, y, z).Nullable()))
+                .ToArray()));
+        }
+
+        private void replaceTextures(double x, double y)
+        {
+            Program.Settings.Execute(new ModifyTextureCoordinates(Program.Settings.Faces.SelectMany(f => f.Vertices)
+                .Where(v => Program.Settings.SelectedVertices.Contains(v.Location))
+                .Select(v => Tuple.Create(v, v.Texture, new PointD(x, y).Nullable()))
                 .ToArray()));
         }
 

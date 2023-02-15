@@ -230,9 +230,9 @@ namespace MeshEdit
 
     sealed class ModifyTextureCoordinates : UndoItem
     {
-        Tuple<VertexInfo, PointD?, PointD>[] _data;
+        Tuple<VertexInfo, PointD?, PointD?>[] _data;
 
-        public ModifyTextureCoordinates(Tuple<VertexInfo, PointD?, PointD>[] data) { _data = data; }
+        public ModifyTextureCoordinates(Tuple<VertexInfo, PointD?, PointD?>[] data) { _data = data; }
         private ModifyTextureCoordinates() { } // Classify
 
         public override void Undo()

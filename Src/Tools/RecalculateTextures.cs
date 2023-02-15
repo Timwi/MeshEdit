@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using RT.Util;
 using RT.Util.Geometry;
 
 namespace MeshEdit
@@ -25,7 +26,7 @@ namespace MeshEdit
                     .Select(v =>
                     {
                         var nv = translateCoords(v.Location);
-                        return Tuple.Create(v, v.Texture, new PointD((nv.X - minX) / (maxX - minX), (nv.Y - maxY) / (minY - maxY)));
+                        return Tuple.Create(v, v.Texture, new PointD((nv.X - minX) / (maxX - minX), (nv.Y - maxY) / (minY - maxY)).Nullable());
                     })
                     .ToArray()));
         }
