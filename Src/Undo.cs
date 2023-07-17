@@ -46,7 +46,11 @@ namespace MeshEdit
                 inf.Item1.Location = inf.Item2;
                 inf.Item1.Normal = inf.Item4;
             }
-            Program.Settings.SelectedVertices = _changes.Select(tup => tup.Item1.Location).Distinct().ToList();
+            Program.Settings.SelectedVertices = Program.Settings.SelectedVertices.Select(v =>
+            {
+                var p = _changes.IndexOf(tup => tup.Item3 == v);
+                return p == -1 ? v : _changes[p].Item2;
+            }).ToList();
         }
 
         public override void Redo()
@@ -56,7 +60,11 @@ namespace MeshEdit
                 inf.Item1.Location = inf.Item3;
                 inf.Item1.Normal = inf.Item5;
             }
-            Program.Settings.SelectedVertices = _changes.Select(tup => tup.Item1.Location).Distinct().ToList();
+            Program.Settings.SelectedVertices = Program.Settings.SelectedVertices.Select(v =>
+            {
+                var p = _changes.IndexOf(tup => tup.Item2 == v);
+                return p == -1 ? v : _changes[p].Item3;
+            }).ToList();
         }
     }
 

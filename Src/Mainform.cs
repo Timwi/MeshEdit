@@ -224,8 +224,12 @@ namespace MeshEdit
                 _draggingVerticesTo = revTrP(e.X, e.Y, beforeMouse);
 
                 for (int i = 0; i < _draggingAffected.Length; i++)
+                {
+                    var p = Program.Settings.SelectedVertices.IndexOf(v => v == _draggingAffected[i].Item1.Location);
                     _draggingAffected[i].Item1.Location = i == _draggingIndex ? _draggingVerticesTo.Value : _draggingAffected[i].Item2 - beforeMouse + _draggingVerticesTo.Value;
-                Program.Settings.SelectedVertices = _draggingAffected.Select(tup => tup.Item1.Location).Distinct().ToList();
+                    if (p != -1)
+                        Program.Settings.SelectedVertices[p] = _draggingAffected[i].Item1.Location;
+                }
                 mainPanel.Refresh();
             }
             else if (_draggingSelectionRect != null)
