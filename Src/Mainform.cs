@@ -748,6 +748,8 @@ namespace MeshEdit
                             case "Shift+Right":
                             case "Shift+Up":
                             case "Shift+Down":
+                            case "Shift+PageUp":
+                            case "Shift+PageDown":
                                 tryAgain:
                                 var numberStr = InputBox.GetLine("By how much?", "1", "Move vertices");
                                 if (numberStr == null)
@@ -758,17 +760,19 @@ namespace MeshEdit
                                     DlgMessage.Show("That is not a valid number.", DlgType.Info);
                                     goto tryAgain;
                                 }
-                                double moveXA = 0, moveYA = 0;
+                                double moveXA = 0, moveYA = 0, moveZA = 0;
                                 switch (combo)
                                 {
                                     case "Shift+Left": moveXA = -number; break;
                                     case "Shift+Right": moveXA = number; break;
-                                    case "Shift+Up": moveYA = -number; break;
-                                    case "Shift+Down": moveYA = number; break;
+                                    case "Shift+Up": moveZA = -number; break;
+                                    case "Shift+Down": moveZA = number; break;
+                                    case "Shift+PageUp": moveYA = -number; break;
+                                    case "Shift+PageDown": moveYA = number; break;
                                 }
                                 Program.Settings.Execute(new MoveVertices(Program.Settings.Faces.SelectMany(f => f.Vertices)
                                     .Where(v => Program.Settings.SelectedVertices.Contains(v.Location))
-                                    .Select(v => Tuple.Create(v, v.Location, new Pt(v.Location.X + moveXA, v.Location.Y, v.Location.Z + moveYA)))
+                                    .Select(v => Tuple.Create(v, v.Location, new Pt(v.Location.X + moveXA, v.Location.Y + moveYA, v.Location.Z + moveZA)))
                                     .ToArray()));
                                 break;
 
